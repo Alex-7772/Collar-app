@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Estado del Animal</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+   <!-- 🧠 Encabezado principal -->
+  <header class="app-header">
+    <h1>Estado del Animal</h1>
+    <div class="profile-icon" id="toggle-sidebar">🐾</div>
+  </header>
+
+  <!-- ✅ Barra lateral fuera del header -->
+  <div class="sidebar" id="sidebar">
+    <!-- 🔒 Botón flotante de cierre -->
+    <button id="cerrar-sidebar" class="cerrar-flotante">❌</button>
+
+    <!-- 🐾 Perfil del animal -->
+<section class="sidebar-section" id="perfil-animal">
+  <h2>🐾 Perfil</h2>
+
+  <!-- Campos fijos -->
+  <div class="perfil-fijo">
+    <div class="campo">
+      <label for="nombre-animal">Nombre:</label>
+      <input type="text" id="nombre-animal" placeholder="Ej. Max">
+    </div>
+    <div class="campo">
+      <label>ID de chip:</label>
+      <span id="chip-animal">982000123456789</span>
+    </div>
+  </div>
+
+  <!-- Campos editables -->
+  <div class="perfil-editable">
+    <div class="campo">
+      <label for="raza-animal">Raza:</label>
+      <select id="raza-animal">
+        <option value="">Selecciona</option>
+        <option value="Labrador">Labrador</option>
+        <option value="Pastor Alemán">Pastor Alemán</option>
+        <option value="Chihuahua">Chihuahua</option>
+        <option value="Mestizo">Mestizo</option>
+        <option value="Otro">Otro</option>
+      </select>
+    </div>
+
+    <div class="campo">
+      <label for="sexo-animal">Sexo:</label>
+      <select id="sexo-animal">
+        <option value="">Selecciona</option>
+        <option value="Macho">Macho</option>
+        <option value="Hembra">Hembra</option>
+      </select>
+    </div>
+
+    <div class="campo">
+      <label for="color-animal">Color:</label>
+      <select id="color-animal">
+        <option value="">Selecciona</option>
+        <option value="Negro">Negro</option>
+        <option value="Blanco">Blanco</option>
+        <option value="Café">Café</option>
+        <option value="Gris">Gris</option>
+        <option value="Manchado">Manchado</option>
+      </select>
+    </div>
+
+    <div class="campo">
+      <label for="peso-animal">Peso (kg):</label>
+      <input type="number" id="peso-animal" step="0.1" min="0" placeholder="Ej. 22.7">
+    </div>
+
+    <div class="campo">
+      <label for="nacimiento-animal">Fecha de nacimiento:</label>
+      <input type="date" id="nacimiento-animal">
+    </div>
+
+    <div class="campo">
+      <label>Edad estimada:</label>
+      <span id="edad-animal">—</span>
+    </div>
+  </div>
+
+  <button id="guardar-perfil">Guardar perfil</button>
+  <div id="mensaje-perfil" class="mensaje-confirmacion" style="display: none;">
+    ✅ Perfil guardado correctamente
+  </div>
+</section>
+<section id="resumen-ambiental" class="panel-resumen">
+  <h3>🌐 Resumen ambiental</h3>
+  <ul id="lista-resumen-ambiental">
+  <!-- Este contenido será reemplazado dinámicamente -->
+</ul>
+</section>
+
+    <!-- 📈 Historial emocional -->
+    <section class="sidebar-section">
+      <h3>📈 Historial emocional</h3>
+      <ul id="historial-emocional"></ul>
+    </section>
+
+    <!-- 📊 Mini dashboard -->
+    <section class="sidebar-section" id="mini-dashboard">
+      <h3>📊 Resumen emocional</h3>
+      <p id="ultima-lectura">Última lectura: 😄 72% – 13:30</p>
+      <p id="promedio-emocional">Promedio emocional: 63%</p>
+      <p id="tendencia-emocional">Tendencia emocional: —</p>
+    </section>
+    <section class="sidebar-section" id="diagnostico-emocional">
+  <h3>🧠 Diagnóstico emocional</h3>
+  <p id="mensaje-diagnostico">—</p>
+</section>
+<section class="sidebar-section" id="recomendaciones-emocionales">
+  <h3>📝 Recomendaciones</h3>
+  <ul id="lista-recomendaciones"></ul>
+</section>
+    <!-- 💡 Recomendaciones personalizadas -->
+<section class="sidebar-section" id="recomendaciones-animal">
+  <h3>💡 Recomendaciones</h3>
+  <div id="sugerencia-animal">—</div>
+</section>
+
+    <!-- ⚠️ Alertas automáticas -->
+<section class="sidebar-section" id="alertas-emocionales">
+  <h3>⚠️ Alertas</h3>
+  <div id="contenedor-alertas" class="alerta-inactiva"></div>
+</section>
+
+<!-- 🚨 Alertas emocionales -->
+<section class="sidebar-section" id="alertas-emocionales">
+  <h3>🚨 Alertas emocionales</h3>
+  <ul id="lista-alertas"></ul>
+</section>
+    <!-- ⚙️ Configuración -->
+    <section class="sidebar-section">
+      <h3>⚙️ Configuración</h3>
+      <p>Datos del animal, alertas, sincronización</p>
+
+      <div class="config-item">
+        <label for="intervalo-personalizado">Intervalo personalizado:</label>
+        <input type="number" id="intervalo-personalizado" min="1" placeholder="Ej. 10">
+        <select id="unidad-intervalo">
+          <option value="1000">Segundos</option>
+          <option value="60000">Minutos</option>
+          <option value="3600000">Horas</option>
+        </select>
+        <button onclick="aplicarIntervaloPersonalizado()">Aplicar</button>
+      </div>
+
+      <div class="config-item">
+        <button id="boton-pausa" onclick="alternarRegistro()">⏸️ Pausar registro</button>
+      </div>
+
+      <div id="mensaje-intervalo" class="mensaje-confirmacion" style="display: none;">
+        ✅ Intervalo actualizado correctamente
+      </div>
+    </section>
+    <section class="sidebar-section" id="configuracion-avanzada">
+  <h3>⚙️ Configuración avanzada</h3>
+
+  <label>Umbral de alerta emocional:
+    <input type="number" id="umbral-emocional" min="0" max="100" step="1">
+  </label>
+
+  <label>Idioma del sistema:
+    <select id="idioma-sistema">
+      <option value="es">Español</option>
+      <option value="en">English</option>
+    </select>
+  </label>
+
+</section>
+
+    <section class="sidebar-section" id="rutinas-emocionales">
+  <h3>📅 Rutinas y tareas</h3>
+  <ul id="lista-rutinas"></ul>
+</section>
+
+    <!-- 📝 Notas -->
+    <section class="sidebar-section">
+      <h3>📝 Notas</h3>
+      <textarea placeholder="Escribe observaciones aquí..." rows="4" id="notas-cuidador"></textarea>
+    </section>
+
+    <!-- 🚀 Acciones -->
+    <section class="sidebar-section">
+      <h3>🚀 Acciones</h3>
+      <button id="generar-informe">Generar informe</button>
+      <button id="exportar-historial">Exportar historial</button>
+      <button id="resetear-datos">Resetear datos</button>
+      <p id="diagnostico-emocional"></p>
+    </section>
+  </div>
+
+  <main>
+    <!-- Pantalla: Estado -->
+   <section id="estado" class="pantalla active">
+  <div class="dashboard">
+    <!-- Temperatura -->
+    <div class="card temperatura">
+      <div class="icon">🌡️</div>
+      <div class="info">
+        <h2>Temperatura corporal</h2>
+        <p id="valor-temperatura">38.2 °C</p>
+      </div>
+      <div class="circle-container">
+        <svg class="circle" viewBox="0 0 36 36">
+          <circle class="bg" cx="18" cy="18" r="15.9155"/>
+          <circle class="progress temperatura" cx="18" cy="18" r="15.9155" stroke-dasharray="76, 100"/>
+          <text x="18" y="20.5" class="percentage" id="texto-temperatura">Moderada</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Ritmo cardíaco -->
+    <div class="card ritmo">
+      <div class="icon">❤️</div>
+      <div class="info">
+        <h2>Ritmo cardíaco</h2>
+        <p id="valor-ritmo">75 bpm</p>
+      </div>
+      <div class="circle-container">
+        <svg class="circle" viewBox="0 0 36 36">
+          <circle class="bg" cx="18" cy="18" r="15.9155"/>
+          <circle class="progress ritmo" cx="18" cy="18" r="15.9155" stroke-dasharray="75, 100"/>
+          <text x="18" y="20.5" class="percentage" id="texto-ritmo">Moderado</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Energía -->
+    <div class="card energia">
+  <div class="icon">⚡</div>
+  <div class="info">
+    <h2>Nivel de energía</h2>
+    <p id="valor-energia">82%</p>
+  </div>
+  <div class="circle-container">
+    <svg class="circle" viewBox="0 0 36 36">
+      <circle class="bg" cx="18" cy="18" r="15.9155"/>
+      <circle class="progress energia" cx="18" cy="18" r="15.9155" stroke-dasharray="82, 100"/>
+      <text x="18" y="20.5" class="percentage" id="texto-energia">Alta</text>
+    </svg>
+  </div>
+</div>
+
+    <!-- Estrés -->
+    <div class="card estres">
+      <div class="icon">😟</div>
+      <div class="info">
+        <h2>Nivel de estrés</h2>
+        <p id="valor-estres">45%</p>
+      </div>
+      <div class="circle-container">
+        <svg class="circle" viewBox="0 0 36 36">
+          <circle class="bg" cx="18" cy="18" r="15.9155"/>
+          <circle class="progress estres" cx="18" cy="18" r="15.9155" stroke-dasharray="45, 100"/>
+          <text x="18" y="20.5" class="percentage" id="texto-estres">Moderado</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Sueño -->
+    <div class="card sueno">
+      <div class="icon">💤</div>
+      <div class="info">
+        <h2>Nivel de sueño</h2>
+        <p id="valor-sueno">60%</p>
+      </div>
+      <div class="circle-container">
+        <svg class="circle" viewBox="0 0 36 36">
+          <circle class="bg" cx="18" cy="18" r="15.9155"/>
+          <circle class="progress sueno" cx="18" cy="18" r="15.9155" stroke-dasharray="60, 100"/>
+          <text x="18" y="20.5" class="percentage" id="texto-sueno">Regular</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Estado emocional -->
+    <div class="card emocional">
+      <div class="icon">😊</div>
+      <div class="info">
+        <h2>Estado emocional</h2>
+        <p id="valor-emocional">Contento</p>
+      </div>
+      <div class="circle-container">
+        <svg class="circle" viewBox="0 0 36 36">
+          <circle class="bg" cx="18" cy="18" r="15.9155"/>
+          <circle class="progress emocional" cx="18" cy="18" r="15.9155" stroke-dasharray="90, 100"/>
+          <text x="18" y="20.5" class="percentage" id="texto-emocional">90%</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Nivel de actividad -->
+    <div class="card actividad">
+      <div class="icon">🏃</div>
+      <div class="info">
+        <h2>Nivel de actividad</h2>
+        <p id="valor-actividad">Moderada</p>
+      </div>
+      <div class="circle-container">
+        <svg class="circle" viewBox="0 0 36 36">
+          <circle class="bg" cx="18" cy="18" r="15.9155"/>
+          <circle class="progress actividad" cx="18" cy="18" r="15.9155" stroke-dasharray="80, 100"/>
+          <text x="18" y="20.5" class="percentage" id="texto-actividad">Contento</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resumen emocional general -->
+  <div class="estado-resumen">
+    <button onclick="alternarResumen()" class="boton-resumen">Mostrar resumen emocional</button>
+    <div id="bloque-resumen" class="resumen-emocional oculto">
+      <h3>Estado emocional general</h3>
+      <div id="resumen-emocional">😐 58% – Inestable</div>
+    </div>
+    <div id="recomendaciones" class="recomendaciones oculto">
+  <h3>Recomendaciones para mejorar el bienestar</h3>
+  <ul id="lista-recomendaciones"></ul>
+</div>
+  </div>
+
+  <!-- Datos de ubicación -->
+  <div class="estado-item"><strong>Intervalo de registro:</strong> <span id="estado-intervalo">Cargando...</span></div>
+  <div class="estado-item"><strong>Última ubicación registrada:</strong> <span id="estado-ultima-hora">--:--</span></div>
+  <div class="estado-item"><strong>Estado de ubicación:</strong> <span id="estado-zona">Cargando...</span></div>
+</section>
+
+    <!-- Pantalla: Ubicación -->
+    <section id="ubicacion" class="pantalla">
+      <div class="pantalla-contenido">
+        <h2>Ubicación en tiempo real</h2>
+        <div id="mapa-real"></div>
+        <p><strong>Dirección:</strong> Calle Cedro, Ciudad Valles, SLP</p>
+        <p><strong>Estado:</strong> Dentro de zona segura ✅</p>
+        <button class="boton-alerta" onclick="alternarModoPerdido(this)">Activar modo perdido 🆘</button>
+        <h3>Historial de ubicaciones</h3>
+        <ul class="historial-ubicacion">
+          
+        </ul>
+      </div>
+      <section class="sidebar-section" id="estado-ambiental">
+  <h3>🌐 Estado ambiental</h3>
+
+  <label>Clima:
+    <select id="clima-actual">
+      <option value="soleado">Soleado</option>
+      <option value="nublado">Nublado</option>
+      <option value="lluvioso">Lluvioso</option>
+      <option value="caluroso">Caluroso</option>
+      <option value="frío">Frío</option>
+    </select>
+  </label>
+
+  <label>Ubicación del animal:
+    <select id="ubicacion-animal">
+      <option value="interior">Interior</option>
+      <option value="exterior">Exterior</option>
+      <option value="zona de descanso">Zona de descanso</option>
+    </select>
+  </label>
+
+  <label>Temperatura corporal (simulada):
+    <input type="number" id="temperatura-corporal" min="30" max="42" step="0.1"> °C
+  </label>
+  
+</section>
+  
+
+    </section>
+
+    <!-- Pantalla: Historial -->
+    <section id="historial" class="pantalla">
+  <!-- 🔧 Configuración de frecuencia -->
+  <div class="config-item">
+    <label for="frecuencia-personalizada">Frecuencia personalizada:</label>
+    <input type="number" id="frecuencia-personalizada" min="1" placeholder="Ej. 10">
+    <select id="unidad-frecuencia">
+      <option value="1000">Segundos</option>
+      <option value="60000">Minutos</option>
+      <option value="3600000">Horas</option>
+    </select>
+    <button onclick="aplicarFrecuenciaPersonalizada()">Aplicar</button>
+  </div>
+
+  <div id="mensaje-frecuencia" class="mensaje-confirmacion" style="display: none;">
+    ✅ Frecuencia de actualización modificada
+  </div>
+
+  <!-- 📈 Gráficas de evolución -->
+  <div class="pantalla-contenido scroll-graficas">
+    <h2>Historial</h2>
+    <p>Gráficas de evolución diaria</p>
+
+    <canvas id="grafica-temperatura"></canvas>
+    <canvas id="grafica-ritmo"></canvas>
+    <canvas id="grafica-energia"></canvas>
+    <canvas id="grafica-estres"></canvas>
+    <canvas id="grafica-sueño"></canvas>
+    <canvas id="grafica-bienestar"></canvas>
+
+    <!-- 📋 Historial emocional -->
+<section id="pantalla-historial">
+  <h2>📋 Historial emocional</h2>
+  <ul id="historial-emocional"></ul>
+</section>
+
+<!-- 📈 Gráfica emocional en tiempo real -->
+<section id="grafica-emocional-dia-contenedor">
+  <h2>📈 Evolución emocional en tiempo real</h2>
+  <canvas id="grafica-emocional-dia"></canvas>
+</section>
+</div>
+<section class="sidebar-section" id="historial-alertas">
+  <h3>📜 Historial de alertas</h3>
+  <ul id="lista-historial-alertas"></ul>
+</section>
+<section class="sidebar-section" id="exportar-datos">
+  <h3>📤 Exportar datos</h3>
+  <button id="btn-exportar-historial">Exportar historial emocional</button>
+  <button id="btn-exportar-alertas">Exportar historial de alertas</button>
+</section>
+
+</section>
+    
+  </main>
+
+  <nav class="bottom-nav">
+    <span onclick="mostrarPantalla('estado')" title="Estado">🧠</span>
+    <span onclick="mostrarPantalla('ubicacion')" title="Ubicación">📍</span>
+    <span onclick="mostrarPantalla('historial')" title="Historial">📊</span>
+    
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="script.js"></script>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDN73D7a77P_SOeZBTmtYtr8puEOK4kjnY&callback=inicializarMapa"></script>
+  
+</body>
+</html>
