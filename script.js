@@ -1,1229 +1,1297 @@
-let intervaloRegistro = 5000;
-let temporizadorRegistro;
-let registroActivo = true;
-let marcador;
 
+// 👉 Alternar visibilidad de la barra lateral
+const toggleSidebar = document.getElementById("toggle-sidebar");
+const sidebar = document.getElementById("sidebar");
+const cerrarSidebar = document.getElementById("cerrar-sidebar");
+
+toggleSidebar.addEventListener("click", () => {
+  sidebar.classList.add("active");
+});
+
+cerrarSidebar.addEventListener("click", () => {
+  sidebar.classList.remove("active");
+});
+
+// 👉 Cambiar entre pantallas
 function mostrarPantalla(id) {
-  document.querySelectorAll(".pantalla").forEach(p => p.classList.remove("active"));
-  const activa = document.getElementById(id);
-  if (activa) {
-    activa.classList.add("active");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+  const pantallas = document.querySelectorAll(".pantalla");
+  pantallas.forEach(p => p.classList.remove("active"));
+  const pantallaActiva = document.getElementById(id);
+  if (pantallaActiva) pantallaActiva.classList.add("active");
 }
 
-function inicializarMapa() {
-  const ubicacion = { lat: 22.0107, lng: -99.0061 };
-  const mapa = new google.maps.Map(document.getElementById("mapa-real"), {
-    zoom: 15,
-    center: ubicacion,
-    mapTypeId: "roadmap",
-  });
+// 👉 Alternar resumen emocional
+function alternarResumen() {
+  const bloque = document.getElementById("bloque-resumen");
+  const recomendaciones = document.getElementById("recomendaciones");
+  const boton = document.querySelector(".boton-resumen");
 
-  marcador = new google.maps.Marker({
-    position: ubicacion,
-    map: mapa,
-    title: "Ubicación de tu mascota",
-    icon: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
-  });
+  const visible = bloque.classList.contains("visible");
 
-  new google.maps.Circle({
-    strokeColor: "#4CAF50",
-    strokeOpacity: 0.8,
-    strokeWeight: 2,
-    fillColor: "#4CAF50",
-    fillOpacity: 0.2,
-    map: mapa,
-    center: ubicacion,
-    radius: 100,
-  });
+  bloque.classList.toggle("visible");
+  recomendaciones.classList.toggle("visible");
 
-  if (localStorage.getItem("modoPerdido") === "true") activarModoPerdidoVisual();
-
-  simularMovimiento();
-  temporizadorRegistro = setInterval(registrarUbicacionSimulada, intervaloRegistro);
+  boton.textContent = visible
+    ? "Mostrar resumen emocional"
+    : "Ocultar resumen emocional";
 }
 
-function alternarModoPerdido(boton) {
-  const mapa = document.getElementById("mapa-real");
-  const pantalla = document.querySelector("#ubicacion .pantalla-contenido");
-  const modoActivo = mapa.classList.contains("modo-perdido");
 
-  if (!modoActivo) {
-    activarModoPerdidoVisual();
-    boton.textContent = "Cancelar modo perdido ❌";
-    localStorage.setItem("modoPerdido", "true");
-  } else {
-    mapa.classList.remove("modo-perdido");
-    pantalla.querySelector(".alerta-visual")?.remove();
-    marcador?.setIcon("https://maps.google.com/mapfiles/ms/icons/red-dot.png");
-    boton.textContent = "Activar modo perdido 🆘";
-    localStorage.setItem("modoPerdido", "false");
-  }
-}
 
-function activarModoPerdidoVisual() {
-  const mapa = document.getElementById("mapa-real");
-  const pantalla = document.querySelector("#ubicacion .pantalla-contenido");
-  mapa.classList.add("modo-perdido");
-
-  if (!pantalla.querySelector(".alerta-visual")) {
-    const alerta = document.createElement("div");
-    alerta.className = "alerta-visual";
-    alerta.textContent = "¡Modo perdido activado! Tu mascota está siendo localizada.";
-    pantalla.appendChild(alerta);
-  }
-
-  marcador?.setIcon("https://maps.google.com/mapfiles/ms/icons/yellow-dot.png");
-}
-
-function simularMovimiento() {
-  const centro = { lat: 22.0107, lng: -99.0061 };
-  const radioZona = 100;
-
-  setInterval(() => {
-    const desplazamiento = {
-      lat: (Math.random() - 0.5) * 0.001,
-      lng: (Math.random() - 0.5) * 0.001,
-    };
-    const nuevaPosicion = {
-      lat: centro.lat + desplazamiento.lat,
-      lng: centro.lng + desplazamiento.lng,
-    };
-
-    marcador?.setPosition(nuevaPosicion);
-    const distancia = calcularDistancia(centro, nuevaPosicion);
-
-    const estadoZona = document.getElementById("estado-zona");
-    if (estadoZona) {
-      estadoZona.textContent = distancia > radioZona ? "Fuera de zona segura 🚨" : "Dentro de zona segura ✅";
-      estadoZona.className = distancia > radioZona ? "estado-zona-alerta" : "estado-zona-ok";
-    }
-
-    if (distancia > radioZona) {
-      activarModoPerdidoVisual();
-      document.querySelector(".boton-alerta").textContent = "Cancelar modo perdido ❌";
-      localStorage.setItem("modoPerdido", "true");
-    }
-  }, 3000);
-}
-
-function calcularDistancia(p1, p2) {
-  const R = 6371000;
-  const dLat = (p2.lat - p1.lat) * Math.PI / 180;
-  const dLng = (p2.lng - p1.lng) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2 +
-            Math.cos(p1.lat * Math.PI / 180) *
-            Math.cos(p2.lat * Math.PI / 180) *
-            Math.sin(dLng / 2) ** 2;
-  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-}
-
-function registrarUbicacionSimulada() {
-  const centro = { lat: 22.0107, lng: -99.0061 };
-  const posicion = marcador?.getPosition();
-  if (!posicion) return;
-
-  const distancia = calcularDistancia(centro, {
-    lat: posicion.lat(),
-    lng: posicion.lng(),
-  });
-
-  const hora = new Date().toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
-  document.getElementById("estado-ultima-hora").textContent = hora;
-
-  const historial = document.querySelector(".historial-ubicacion");
-  if (historial) {
-    const nuevaEntrada = document.createElement("li");
-    nuevaEntrada.textContent = `${hora} - Posición registrada (${distancia.toFixed(0)} m)`;
-    historial.prepend(nuevaEntrada);
-  }
-}
-
-function actualizarIntervalo(ms) {
-  intervaloRegistro = ms;
-  clearInterval(temporizadorRegistro);
-  temporizadorRegistro = setInterval(registrarUbicacionSimulada, intervaloRegistro);
-  mostrarIntervaloEnEstado();
-}
-
-function cambiarIntervaloDesdeUI() {
-  const nuevoValor = parseInt(document.getElementById("intervalo-registro").value);
-  actualizarIntervalo(nuevoValor);
-  localStorage.setItem("intervaloRegistro", nuevoValor);
-  mostrarMensaje(`✅ Intervalo actualizado a ${nuevoValor / 1000} segundos`);
-}
-
+// 👉 Aplicar intervalo personalizado
 function aplicarIntervaloPersonalizado() {
-  const cantidad = parseInt(document.getElementById("intervalo-personalizado").value);
-  const unidad = parseInt(document.getElementById("unidad-intervalo").value);
-  if (isNaN(cantidad) || cantidad <= 0) return;
-
-  const nuevoIntervalo = cantidad * unidad;
-  if (nuevoIntervalo < 1000 || nuevoIntervalo > 86400000) {
-    alert("El intervalo debe estar entre 1 segundo y 24 horas.");
-    return;
-  }
-
-  actualizarIntervalo(nuevoIntervalo);
-  localStorage.setItem("intervaloRegistro", nuevoIntervalo);
-
-  const unidadTexto = unidad === 1000 ? "segundos" : unidad === 60000 ? "minutos" : "horas";
-  mostrarMensaje(`✅ Intervalo actualizado a ${cantidad} ${unidadTexto}`);
-}
-
-function mostrarIntervaloEnEstado() {
-  const span = document.getElementById("estado-intervalo");
-  if (span) span.textContent = `Cada ${intervaloRegistro / 1000} segundos`;
-}
-
-function mostrarMensaje(texto) {
+  const valor = document.getElementById("intervalo-personalizado").value;
+  const unidad = document.getElementById("unidad-intervalo").value;
   const mensaje = document.getElementById("mensaje-intervalo");
-  if (mensaje) {
-    mensaje.textContent = texto;
+
+  if (valor && unidad) {
+    const intervaloMs = parseInt(valor) * parseInt(unidad);
+    document.getElementById("estado-intervalo").textContent = `${valor} ${unidad === "1000" ? "segundos" : unidad === "60000" ? "minutos" : "horas"}`;
     mensaje.style.display = "block";
     setTimeout(() => mensaje.style.display = "none", 3000);
   }
 }
 
+// 👉 Alternar registro (pausar/reanudar)
 function alternarRegistro() {
   const boton = document.getElementById("boton-pausa");
-  registroActivo = !registroActivo;
+  const pausado = boton.textContent.includes("⏸️");
+  boton.textContent = pausado ? "▶️ Reanudar registro" : "⏸️ Pausar registro";
+}
 
-  if (registroActivo) {
-    temporizadorRegistro = setInterval(registrarUbicacionSimulada, intervaloRegistro);
-    boton.textContent = "⏸️ Pausar registro";
-    boton.classList.remove("pausado");
-  } else {
-    clearInterval(temporizadorRegistro);
-    boton.textContent = "▶️ Reanudar registro";
-    boton.classList.add("pausado");
+// 👉 Aplicar frecuencia personalizada (historial)
+function aplicarFrecuenciaPersonalizada() {
+  const valor = document.getElementById("frecuencia-personalizada").value;
+  const unidad = document.getElementById("unidad-frecuencia").value;
+  const mensaje = document.getElementById("mensaje-frecuencia");
+
+  if (valor && unidad) {
+    mensaje.style.display = "block";
+    setTimeout(() => mensaje.style.display = "none", 3000);
   }
 }
-// Inicialización de gráficas
-const graficas = {
-  temperatura: crearGrafica("grafica-temperatura", "Temperatura (°C)", "#F5A623"),
-  ritmo: crearGrafica("grafica-ritmo", "Ritmo cardíaco (bpm)", "#7ED321"),
-  energia: crearGrafica("grafica-energia", "Energía (%)", "#00C853"),
-  estres: crearGrafica("grafica-estres", "Estrés (%)", "#FFA726"),
-  sueño: crearGrafica("grafica-sueño", "Sueño (%)", "#42A5F5"),
-  bienestar: crearGrafica("grafica-bienestar", "Bienestar (%)", "#c700ceff"),
-};
 
-// Función para crear una gráfica con diseño detallado
-function crearGrafica(idCanvas, etiqueta, color) {
-  const ctx = document.getElementById(idCanvas).getContext("2d");
+// 👉 Guardar perfil del animal
+document.getElementById("guardar-perfil").addEventListener("click", () => {
+  const nombre = document.getElementById("nombre-animal").value;
+  const peso = document.getElementById("peso-animal").value;
+  const nacimiento = document.getElementById("nacimiento-animal").value;
+  const mensaje = document.getElementById("mensaje-perfil");
 
-  return new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: [],
-      datasets: [{
-        label: etiqueta,
-        data: [],
-        borderColor: color,
-        backgroundColor: color + "33", // color semitransparente fijo
-        tension: 0.4,
-        pointRadius: 4,
-        pointBackgroundColor: "#fff",
-        pointBorderColor: color,
-        pointBorderWidth: 2,
-        fill: true,
-      }],
-    },
-    options: {
-      responsive: true,
-      animation: {
-        duration: 500,
-        easing: "easeOutQuart",
-      },
-      scales: {
-        x: {
-          display: true,
-          title: {
-            display: true,
-            text: "Hora",
-            color: "#ccc",
-            font: { size: 12 },
-          },
-          ticks: { color: "#aaa" },
-        },
-        y: {
-          beginAtZero: true,
-          title: {
-            display: true,
-            text: "Valor",
-            color: "#ccc",
-            font: { size: 12 },
-          },
-          ticks: { color: "#aaa" },
-        },
-      },
-      plugins: {
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              return `${context.dataset.label}: ${context.parsed.y}`;
-            },
-          },
-        },
-        legend: {
-          labels: {
-            color: "#fff",
-            font: { size: 12 },
-          },
-        },
-      },
+  // Simulación de cálculo de edad
+  if (nacimiento) {
+    const edadSpan = document.getElementById("edad-animal");
+    const nacimientoDate = new Date(nacimiento);
+    const hoy = new Date();
+    const edadAnios = hoy.getFullYear() - nacimientoDate.getFullYear();
+    edadSpan.textContent = `${edadAnios} años`;
+  }
+
+  mensaje.style.display = "block";
+  setTimeout(() => mensaje.style.display = "none", 3000);
+});
+function inicializarMapa() {
+  const mapaElemento = document.getElementById("mapa-real");
+
+  const ubicacionInicial = { lat: 22.0109, lng: -99.0061 }; // Ciudad Valles, SLP
+
+  const mapa = new google.maps.Map(mapaElemento, {
+    center: ubicacionInicial,
+    zoom: 15,
+    mapId: "DEMO_MAP_ID", // opcional: puedes usar estilos personalizados
+  });
+
+  const marcador = new google.maps.Marker({
+    position: ubicacionInicial,
+    map: mapa,
+    title: "Ubicación del animal",
+    icon: {
+      url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png",
     },
   });
 }
+const dias = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+const maxPuntos = 7;
 
-// Variables de control
-let intervaloHistorial = 5000;
-let temporizadorHistorial;
+// Generador progresivo con ruido controlado
+const valoresActuales = {};
+let frecuenciaSimulacion = 3000; // valor inicial por defecto
+let intervalosGraficas = {};     // para controlar cada gráfica por ID
+function generarValorSuave(id, min, max, paso = 0.5) {
+  if (!(id in valoresActuales)) {
+    valoresActuales[id] = (min + max) / 2;
+  }
 
-// Iniciar simulación
-function iniciarSimulacionHistorial() {
-  if (temporizadorHistorial) clearInterval(temporizadorHistorial);
-  temporizadorHistorial = setInterval(actualizarGraficasSimuladas, intervaloHistorial);
+  let actual = valoresActuales[id];
+  const variacion = (Math.random() - 0.5) * paso * 2;
+  actual += variacion;
+
+  if (actual < min) actual = min + Math.random() * paso;
+  if (actual > max) actual = max - Math.random() * paso;
+
+  valoresActuales[id] = parseFloat(actual.toFixed(1));
+  return valoresActuales[id];
 }
 
-// Actualizar gráficas con datos simulados
-function actualizarGraficasSimuladas() {
-  const hora = new Date().toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-
-  const nuevosDatos = {
-    temperatura: (37 + Math.random() * 1.5).toFixed(1),
-    ritmo: Math.floor(70 + Math.random() * 10),
-    energia: Math.floor(60 + Math.random() * 30),
-    estres: Math.floor(30 + Math.random() * 40),
-    sueño: Math.floor(50 + Math.random() * 30),
-    bienestar: Math.floor(60 + Math.random() * 20),
+function crearGraficaTiempoReal(idCanvas, label, color, rango) {
+  const ctx = document.getElementById(idCanvas).getContext("2d");
+  const datos = {
+    labels: [],
+    datasets: [{
+      label: label,
+      data: [],
+      borderColor: color,
+      backgroundColor: "transparent",
+      tension: 0.3,
+      pointRadius: 3,
+      pointBackgroundColor: color
+    }]
   };
 
-  Object.keys(graficas).forEach((clave) => {
-    const grafica = graficas[clave];
-    grafica.data.labels.push(hora);
-    grafica.data.datasets[0].data.push(nuevosDatos[clave]);
+  const grafica = new Chart(ctx, {
+    type: "line",
+    data: datos,
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { mode: "index", intersect: false }
+      },
+      scales: {
+        x: { title: { display: true, text: "Tiempo" } },
+        y: { title: { display: true, text: label } }
+      }
+    }
+  });
 
-    if (grafica.data.labels.length > 10) {
-      grafica.data.labels.shift();
-      grafica.data.datasets[0].data.shift();
+  // Guarda función de actualización
+  function actualizar() {
+    const nuevoValor = generarValorSuave(idCanvas, rango.min, rango.max);
+    const hora = new Date().toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+
+    datos.labels.push(hora);
+    datos.datasets[0].data.push(nuevoValor);
+
+    if (datos.labels.length > maxPuntos) {
+      datos.labels.shift();
+      datos.datasets[0].data.shift();
     }
 
     grafica.update();
-  });
-}
+  }
 
-// Cambiar frecuencia desde selector
-function cambiarFrecuenciaHistorial() {
-  const nuevoValor = parseInt(document.getElementById("frecuencia-historial").value);
-  intervaloHistorial = nuevoValor;
-  iniciarSimulacionHistorial();
-  mostrarMensajeFrecuencia(`✅ Frecuencia actualizada a ${nuevoValor / 1000} segundos`);
+  // Inicia intervalo y guarda referencia
+  intervalosGraficas[idCanvas] = setInterval(actualizar, frecuenciaSimulacion);
 }
+// Inicializar todas las gráficas
+crearGraficaTiempoReal("grafica-temperatura", "Temperatura corporal (°C)", "#F5A623", { min: 22, max: 55.5 });
+crearGraficaTiempoReal("grafica-ritmo", "Ritmo cardíaco (bpm)", "#7ED321", { min: 60, max: 130 });
+crearGraficaTiempoReal("grafica-energia", "Nivel de energía (%)", "#00C853", { min: 0, max: 100 });
+crearGraficaTiempoReal("grafica-estres", "Nivel de estrés (%)", "#FFA726", { min: 0, max: 100 });
+crearGraficaTiempoReal("grafica-sueño", "Nivel de sueño (%)", "#42A5F5", { min: 0, max: 10 });
+crearGraficaTiempoReal("grafica-bienestar", "Bienestar emocional (%)", "#F8E71C", { min: 0, max: 100 });
+crearGraficaTiempoReal("grafica-emocional-tiempo", "Evolución emocional en tiempo real (%)", "#9c27b0", { min: 0, max: 100 });
 
-// Aplicar frecuencia personalizada
 function aplicarFrecuenciaPersonalizada() {
-  const cantidad = parseInt(document.getElementById("frecuencia-personalizada").value);
+  const valor = parseInt(document.getElementById("frecuencia-personalizada").value);
   const unidad = parseInt(document.getElementById("unidad-frecuencia").value);
-  if (isNaN(cantidad) || cantidad <= 0) return;
 
-  const nuevaFrecuencia = cantidad * unidad;
-  if (nuevaFrecuencia < 1000 || nuevaFrecuencia > 86400000) {
-    alert("La frecuencia debe estar entre 1 segundo y 24 horas.");
+  if (isNaN(valor) || valor < 1) {
+    alert("Ingresa una frecuencia válida.");
     return;
   }
 
-  intervaloHistorial = nuevaFrecuencia;
-  iniciarSimulacionHistorial();
+  frecuenciaSimulacion = valor * unidad;
 
-  const unidadTexto = unidad === 1000 ? "segundos" : unidad === 60000 ? "minutos" : "horas";
-  mostrarMensajeFrecuencia(`✅ Frecuencia actualizada a ${cantidad} ${unidadTexto}`);
+  // Reinicia todos los intervalos
+  for (const id in intervalosGraficas) {
+    clearInterval(intervalosGraficas[id]);
+    const canvas = document.getElementById(id);
+    if (canvas) {
+      const label = canvas.getAttribute("data-label");
+      const color = canvas.getAttribute("data-color");
+      const rango = JSON.parse(canvas.getAttribute("data-rango"));
+      intervalosGraficas[id] = setInterval(() => {
+        const nuevoValor = generarValorSuave(id, rango.min, rango.max);
+        const hora = new Date().toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+
+        const chart = Chart.getChart(id);
+        chart.data.labels.push(hora);
+        chart.data.datasets[0].data.push(nuevoValor);
+
+        if (chart.data.labels.length > maxPuntos) {
+          chart.data.labels.shift();
+          chart.data.datasets[0].data.shift();
+        }
+
+        chart.update();
+      }, frecuenciaSimulacion);
+    }
+  }
+
+  // Muestra confirmación
+  const mensaje = document.getElementById("mensaje-frecuencia");
+  mensaje.style.display = "block";
+  setTimeout(() => mensaje.style.display = "none", 3000);
 }
 
-// Mostrar mensaje de confirmación
-function mostrarMensajeFrecuencia(texto) {
-  const mensaje = document.getElementById("mensaje-frecuencia");
-  if (mensaje) {
-    mensaje.textContent = texto;
-    mensaje.style.display = "block";
-    setTimeout(() => mensaje.style.display = "none", 3000);
+const valoresCirculares = {
+  temperatura: 35.2,
+  ritmo: 75,
+  energia: 82,
+  estres: 45,
+  sueno: 60,
+  emocional: 90,
+  actividad: 80
+};
+
+const rangosCirculares = {
+  temperatura: { min: 30.8, max: 40.5, unidad: "°C" },
+  ritmo: { min: 0, max: 140, unidad: "bpm" },
+  energia: { min: 0, max: 100, unidad: "%" },
+  estres: { min: 0, max: 100, unidad: "%" },
+  sueno: { min: 0, max: 100, unidad: "%" },
+  emocional: { min: 0, max: 100, unidad: "%" },
+  actividad: { min: 0, max: 100, unidad: "%" }
+};
+
+function actualizarGraficasCirculares() {
+  for (const id in valoresCirculares) {
+    const rango = rangosCirculares[id];
+    let actual = valoresCirculares[id];
+    const variacion = (Math.random() - 0.5) * 2;
+    actual += variacion;
+
+    if (actual < rango.min) actual = rango.min + Math.random();
+    if (actual > rango.max) actual = rango.max - Math.random();
+
+    actual = parseFloat(actual.toFixed(1));
+    valoresCirculares[id] = actual;
+
+    const porcentaje = Math.round(((actual - rango.min) / (rango.max - rango.min)) * 100);
+    const dash = `${porcentaje}, 100`;
+
+    const circulo = document.querySelector(`.progress.${id}`);
+    const texto = document.getElementById(`texto-${id}`);
+    const valor = document.getElementById(`valor-${id}`);
+
+    if (circulo) {
+      circulo.setAttribute("stroke-dasharray", dash);
+      circulo.setAttribute("stroke", obtenerColor(id, actual));
+    }
+
+    if (texto) {
+      texto.textContent = id === "emocional"
+        ? `${porcentaje}%`
+        : obtenerEtiquetaPorPorcentaje(porcentaje);
+      texto.classList.add("actualizando");
+      setTimeout(() => texto.classList.remove("actualizando"), 300);
+    }
+
+    if (valor) {
+      valor.textContent = `${actual}${rango.unidad}`;
+    }
   }
 }
 
-// Activar simulación al cargar
-iniciarSimulacionHistorial();
+function obtenerEtiquetaPorPorcentaje(porcentaje) {
+  if (porcentaje < 33) return "Baja";
+  if (porcentaje < 66) return "Moderada";
+  return "Alta";
+}
 
-// Actualizar indicadores fisiológicos y resumen emocional
+function obtenerColor(id, valor) {
+  if (id === "estres") {
+    return valor > 65 ? "#f44336" : valor > 45 ? "#ff9800" : "#4caf50";
+  }
+  if (id === "energia" || id === "emocional" || id === "actividad") {
+    return valor > 80 ? "#00e676" : valor > 60 ? "#ffeb3b" : "#ff5722";
+  }
+  if (id === "sueno") {
+    return valor > 70 ? "#2196f3" : valor > 55 ? "#03a9f4" : "#9e9e9e";
+  }
+  if (id === "temperatura") {
+    return valor > 38.3 ? "#e91e63" : valor > 38 ? "#ff9800" : "#4caf50";
+  }
+  if (id === "ritmo") {
+    return valor > 78 ? "#f44336" : valor > 72 ? "#ff9800" : "#4caf50";
+  }
+  return "#9c27b0";
+}
 
-function actualizarIndicadoresEstado() {
-  const datos = {
-    temperatura: (36.5 + Math.random() * 2.5).toFixed(1),
-    ritmo: Math.floor(60 + Math.random() * 50),
-    energia: Math.floor(Math.random() * 100),
-    estres: Math.floor(Math.random() * 100),
-    sueno: Math.floor(Math.random() * 100),
-    emocional: Math.floor(Math.random() * 100),
-    actividad: Math.floor(Math.random() * 100)
+
+
+const recomendacionesPorNivel = {
+  temperatura: {
+    baja: ["Abrígalo ligeramente si hay viento", "Evita corrientes de aire"],
+    moderada: ["Mantén hidratación constante", "Ambiente ventilado y tranquilo"],
+    alta: ["Aplica compresas frías", "Consulta al veterinario si persiste"]
+  },
+  ritmo: {
+    baja: ["Estimula con juegos suaves", "Verifica si está somnoliento"],
+    moderada: ["Buen momento para paseo corto", "Observa si mantiene ritmo"],
+    alta: ["Evita actividad intensa", "Permite descanso inmediato"]
+  },
+  energia: {
+    baja: ["Ofrece alimento energético", "Evita sobreestimulación"],
+    moderada: ["Ideal para entrenamiento", "Juega con moderación"],
+    alta: ["Permite actividad física", "Evita sobrecarga emocional"]
+  },
+  estres: {
+    baja: ["Ambiente relajado", "Refuerza rutinas positivas"],
+    moderada: ["Evita ruidos fuertes", "Ofrece espacio seguro"],
+    alta: ["Reduce estímulos externos", "Consulta si persiste"]
+  },
+  sueno: {
+    baja: ["Asegura zona de descanso", "Evita interrupciones"],
+    moderada: ["Mantén horarios regulares", "Ambiente oscuro y tranquilo"],
+    alta: ["Evita sobreestimulación", "Permite siestas prolongadas"]
+  },
+  emocional: {
+    baja: ["Refuerza vínculos afectivos", "Evita correcciones bruscas"],
+    moderada: ["Interactúa con cariño", "Observa señales de ánimo"],
+    alta: ["Celebra su estado", "Refuerza con estímulos positivos"]
+  },
+  actividad: {
+    baja: ["Motívalo con juguetes", "Evita sedentarismo prolongado"],
+    moderada: ["Ideal para paseo", "Observa su disposición"],
+    alta: ["Evita sobreesfuerzo", "Permite pausas frecuentes"]
+  }
+};
+
+function actualizarRecomendaciones() {
+  const lista = document.getElementById("lista-recomendaciones");
+  if (!lista) return;
+
+  lista.innerHTML = ""; // Limpiar recomendaciones anteriores
+
+  for (const id in valoresCirculares) {
+    const rango = rangosCirculares[id];
+    const valor = valoresCirculares[id];
+    const porcentaje = Math.round(((valor - rango.min) / (rango.max - rango.min)) * 100);
+
+    let nivel = "moderada";
+    if (porcentaje < 33) nivel = "baja";
+    else if (porcentaje > 66) nivel = "alta";
+
+    const recomendaciones = recomendacionesPorNivel[id]?.[nivel];
+    if (recomendaciones && recomendaciones.length > 0) {
+      const grupo = document.createElement("li");
+      grupo.innerHTML = `<strong>${formatearNombre(id)} (${capitalizar(nivel)})</strong><ul>${recomendaciones.map(r => `<li>${r}</li>`).join("")}</ul>`;
+      lista.appendChild(grupo);
+    }
+  }
+}
+
+function formatearNombre(id) {
+  const nombres = {
+    temperatura: "Temperatura corporal",
+    ritmo: "Ritmo cardíaco",
+    energia: "Nivel de energía",
+    estres: "Nivel de estrés",
+    sueno: "Nivel de sueño",
+    emocional: "Estado emocional",
+    actividad: "Nivel de actividad"
   };
+  return nombres[id] || id.charAt(0).toUpperCase() + id.slice(1);
+}
 
-  const evaluarNivel = (valor) => {
-    if (valor < 40) return "bajo";
-    if (valor < 70) return "moderado";
-    return "alto";
-  };
+function capitalizar(texto) {
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+const zonasSimuladas = [
+  "Zona tranquila",
+  "Zona ruidosa",
+  "Zona con tráfico",
+  "Zona verde",
+  "Zona industrial",
+  "Zona residencial",
+  "Zona comercial"
+];
 
-  const aplicarEstadoVisual = (valor, unidad, textoId, valorId, progresoClass) => {
-    const nivel = evaluarNivel(valor);
-    const texto = document.getElementById(textoId);
-    const valorTexto = document.getElementById(valorId);
-    const progreso = document.querySelector(`.progress.${progresoClass}`);
+function actualizarUbicacionSimulada() {
+  const intervalo = document.getElementById("estado-intervalo");
+  const ultimaHora = document.getElementById("estado-ultima-hora");
+  const zona = document.getElementById("estado-zona");
 
-    texto.textContent = `${nivel.charAt(0).toUpperCase() + nivel.slice(1)} – ${Math.round(valor)}%`;
-    valorTexto.textContent = unidad === "°C" ? `${(valor / 2).toFixed(1)} °C` : `${Math.round(valor)}${unidad}`;
-    progreso.setAttribute("stroke-dasharray", `${Math.round(valor)}, 100`);
+  const ahora = new Date();
+  const hora = ahora.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+  const zonaAleatoria = zonasSimuladas[Math.floor(Math.random() * zonasSimuladas.length)];
 
-    progreso.classList.remove("bajo", "moderado", "alto", "alerta");
-    progreso.classList.add(nivel);
-    if (nivel === "bajo" || nivel === "alto") progreso.classList.add("alerta");
+  if (intervalo) intervalo.textContent = "Cada 10 segundos";
+  if (ultimaHora) ultimaHora.textContent = hora;
+  if (zona) zona.textContent = zonaAleatoria;
+}
 
-    actualizarIcono(progresoClass, nivel);
-  };
+// ⏱️ Iniciar simulación
+setInterval(actualizarUbicacionSimulada, 10000);
+function actualizarResumenAmbiental() {
+  const clima = document.getElementById("clima-actual")?.value;
+  const ubicacion = document.getElementById("ubicacion-animal")?.value;
+  const temperatura = document.getElementById("temperatura-corporal")?.value;
 
-  const actualizarIcono = (clase, nivel) => {
-    const icono = document.querySelector(`.card.${clase} .icon`);
-    if (!icono) return;
+  if (clima) document.getElementById("resumen-clima").textContent = capitalizar(clima);
+  if (ubicacion) document.getElementById("resumen-ubicacion").textContent = capitalizar(ubicacion);
+  if (temperatura) document.getElementById("resumen-temperatura").textContent = `${temperatura} °C`;
+}
 
-    const iconos = {
-      temperatura: ["❄️", "🌡️", "🔥"],
-      ritmo: ["💓", "❤️", "❤️‍🔥"],
-      energia: ["🔋", "🔌", "⚡"],
-      estres: ["😌", "😟", "😣"],
-      sueno: ["😴", "💤", "🛌"],
-      emocional: ["😕", "🙂", "😊"],
-      actividad: ["⛔", "🚶", "🏃"]
-    };
+function capitalizar(texto) {
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+document.getElementById("clima-actual").addEventListener("change", actualizarResumenAmbiental);
+document.getElementById("ubicacion-animal").addEventListener("change", actualizarResumenAmbiental);
+document.getElementById("temperatura-corporal").addEventListener("input", actualizarResumenAmbiental);
 
-    const index = nivel === "bajo" ? 0 : nivel === "moderado" ? 1 : 2;
-    icono.textContent = iconos[clase][index];
-    icono.classList.add("cambio");
-    setTimeout(() => icono.classList.remove("cambio"), 400);
-  };
+const evaluacionesEmocionales = {
+  baja: "Sensitivo",
+  moderada: "Estable",
+  alta: "Eufórico"
+};
 
-  aplicarEstadoVisual(datos.temperatura * 2, "°C", "texto-temperatura", "valor-temperatura", "temperatura");
-  aplicarEstadoVisual(datos.ritmo, " bpm", "texto-ritmo", "valor-ritmo", "ritmo");
-  aplicarEstadoVisual(datos.energia, "%", "texto-energia", "valor-energia", "energia");
-  aplicarEstadoVisual(datos.estres, "%", "texto-estres", "valor-estres", "estres");
-  aplicarEstadoVisual(datos.sueno, "%", "texto-sueno", "valor-sueno", "sueno");
+const recomendacionesEmocionales = {
+  baja: "Refuerza vínculos afectivos y evita correcciones bruscas.",
+  moderada: "Interactúa con cariño y observa señales de ánimo.",
+  alta: "Celebra su estado y refuerza con estímulos positivos."
+};
 
-  document.getElementById("texto-emocional").textContent = `${datos.emocional}%`;
-  document.getElementById("valor-emocional").textContent = "Contento";
-  document.querySelector(".progress.emocional").setAttribute("stroke-dasharray", `${datos.emocional}, 100`);
-  actualizarIcono("emocional", evaluarNivel(datos.emocional));
+let historialEmocional = [];
 
-  const actividadNivel = evaluarNivel(datos.actividad);
-  document.getElementById("texto-actividad").textContent = actividadNivel;
-  document.getElementById("valor-actividad").textContent = actividadNivel;
-  document.querySelector(".progress.actividad").setAttribute("stroke-dasharray", `${datos.actividad}, 100`);
-  actualizarIcono("actividad", actividadNivel);
+function actualizarEstadoEmocionalGeneral() {
+  const valor = valoresCirculares["emocional"];
+  const rango = rangosCirculares["emocional"];
+  const porcentaje = Math.round(((valor - rango.min) / (rango.max - rango.min)) * 100);
 
-
-  // 🧠 Resumen emocional global
-  const estadoGlobal = Math.round(
-    (datos.energia + (100 - datos.estres) + datos.sueno + datos.emocional + datos.actividad) / 5
-  );
-
+  let nivel = "Inestable";
   let emoji = "😐";
-  let estadoTexto = "Inestable";
 
-  if (estadoGlobal < 40) {
-    emoji = "😟";
-    estadoTexto = "Crítico";
-  } else if (estadoGlobal < 60) {
-    emoji = "😐";
-    estadoTexto = "Inestable";
-  } else if (estadoGlobal < 80) {
-    emoji = "🙂";
-    estadoTexto = "Estable";
-  } else {
+  if (porcentaje >= 85) {
+    nivel = "Excelente";
     emoji = "😄";
-    estadoTexto = "Óptimo";
+  } else if (porcentaje >= 70) {
+    nivel = "Bueno";
+    emoji = "🙂";
+  } else if (porcentaje >= 50) {
+    nivel = "Moderado";
+    emoji = "😐";
+  } else {
+    nivel = "Inestable";
+    emoji = "😟";
   }
 
   const resumen = document.getElementById("resumen-emocional");
   if (resumen) {
-    resumen.textContent = `${emoji} ${estadoGlobal}% – ${estadoTexto}`;
-  }
-
-  const dashboard = document.querySelector(".dashboard");
-  if (dashboard) {
-    dashboard.classList.remove("estable", "inestable", "critico");
-    dashboard.classList.add(estadoTexto.toLowerCase());
-  }
-
-  const recomendaciones = [];
-
-  if (datos.energia < 40) {
-    recomendaciones.push("Aumenta la actividad física con paseos cortos o juegos suaves.");
-  }
-  if (datos.estres > 70) {
-    recomendaciones.push("Proporciona un espacio tranquilo y seguro para reducir el estrés.");
-  }
-  if (datos.sueno < 50) {
-    recomendaciones.push("Revisa el entorno de descanso: evita ruidos, luz intensa o interrupciones.");
-  }
-  if (datos.emocional < 50) {
-    recomendaciones.push("Dedica tiempo a la interacción afectiva: caricias, juegos o compañía.");
-  }
-  if (datos.actividad < 40 && datos.energia > 60) {
-    recomendaciones.push("Incorpora sesiones de juego o entrenamiento para canalizar su energía.");
-  }
-  if (recomendaciones.length === 0) {
-    recomendaciones.push("El estado general es estable. Mantén la rutina y monitorea regularmente.");
-  }
-
-  const bloqueRecomendaciones = document.getElementById("recomendaciones");
-  const lista = document.getElementById("lista-recomendaciones");
-
-  if (bloqueRecomendaciones && lista) {
-    lista.innerHTML = "";
-    recomendaciones.forEach((rec) => {
-      const li = document.createElement("li");
-      li.textContent = rec;
-      lista.appendChild(li);
-    });
-    bloqueRecomendaciones.classList.remove("oculto");
+    resumen.textContent = `${emoji} ${porcentaje}% – ${nivel}`;
   }
 }
-// ⏱️ Ejecutar cada 5 segundos
-setInterval(actualizarIndicadoresEstado, 5000);
-
-// Mostrar/ocultar resumen emocional
-function alternarResumen() {
-  const bloque = document.getElementById("bloque-resumen");
-  const boton = document.querySelector(".boton-resumen");
-
-  if (bloque.classList.contains("oculto")) {
-    bloque.classList.remove("oculto");
-    boton.textContent = "Ocultar resumen emocional";
-  } else {
-    bloque.classList.add("oculto");
-    boton.textContent = "Mostrar resumen emocional";
-  }
-}
-const toggleBtn = document.getElementById("toggle-sidebar");
-const sidebar = document.getElementById("sidebar");
-const cerrarBtn = document.getElementById("cerrar-sidebar");
-
-toggleBtn.addEventListener("click", () => {
-  sidebar.classList.toggle("visible");
-});
-
-cerrarBtn.addEventListener("click", () => {
-  sidebar.classList.remove("visible");
-});
-let intervaloSimulacion = null;
-
-const historialInicial = [
-  { emoji: "🙂", valor: 72, hora: "13:30" },
-  { emoji: "😟", valor: 38, hora: "13:15" },
-  { emoji: "😐", valor: 58, hora: "13:00" }
-];
-
-
-// ✅ Añade una nueva lectura emocional al historial
-function agregarLecturaEmocional(emoji, valor, hora) {
-  const lectura = `${emoji} ${valor}% – ${hora}`;
-
-  // 📋 Agrega al historial visual
-  const li = document.createElement("li");
-  li.textContent = lectura;
-  const historial = document.getElementById("historial-emocional");
-  historial.insertBefore(li, historial.firstChild);
-
-  // ✅ Limita el historial visual a 10 entradas
-  while (historial.children.length > 10) {
-    historial.removeChild(historial.lastChild);
-  }
-
-  // 💾 Guarda en localStorage (limitado a 10)
-  const historialGuardado = JSON.parse(localStorage.getItem("lecturasEmocionales") || "[]");
-  historialGuardado.unshift(lectura); // agrega al inicio
-  if (historialGuardado.length > 10) {
-    historialGuardado.pop(); // elimina la más antigua
-  }
-  localStorage.setItem("lecturasEmocionales", JSON.stringify(historialGuardado));
-
-  // 📈 Actualiza gráfica emocional
-  if (typeof graficaEmocionalDia !== "undefined" && graficaEmocionalDia) {
-    graficaEmocionalDia.data.labels.unshift(hora);
-    graficaEmocionalDia.data.datasets[0].data.unshift(valor);
-
-    if (graficaEmocionalDia.data.labels.length > 10) {
-      graficaEmocionalDia.data.labels.pop();
-      graficaEmocionalDia.data.datasets[0].data.pop();
-    }
-
-    graficaEmocionalDia.update();
-  }
-
-  // 🔄 Actualiza resumen emocional en la barra lateral
-  actualizarResumenEmocional();
-
-  // 🚨 Verifica alertas si tienes esa función
-  if (typeof verificarAlertas === "function") {
-    verificarAlertas(valor, obtenerPromedioEmocional());
-  }
-  generarDiagnosticoEmocional();
-generarRecomendacionesEmocionales();
-generarRutinasEmocionales(); 
-}
-
-// ✅ Actualiza el resumen emocional en el mini dashboard lateral
 function actualizarResumenEmocional() {
-  const items = [...document.querySelectorAll("#historial-emocional li")];
-  if (items.length === 0) return;
+  const valor = valoresCirculares["emocional"];
+  const rango = rangosCirculares["emocional"];
+  const porcentaje = Math.round(((valor - rango.min) / (rango.max - rango.min)) * 100);
 
-  const valores = [];
-  let ultimaLectura = null;
+  let nivel = "moderada";
+  if (porcentaje < 33) nivel = "baja";
+  else if (porcentaje > 70) nivel = "alta";
 
-  for (const item of items) {
-    const match = item.textContent.match(/(\d+)%/);
-    if (match) {
-      valores.push(parseInt(match[1]));
-      if (!ultimaLectura) ultimaLectura = item.textContent;
+  const hora = new Date().toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+  const emoji = nivel === "alta" ? "😄" : nivel === "moderada" ? "😐" : "😟";
+
+  // Actualizar historial
+  historialEmocional.push(porcentaje);
+  if (historialEmocional.length > 10) historialEmocional.shift();
+
+  const promedio = Math.round(historialEmocional.reduce((a, b) => a + b, 0) / historialEmocional.length);
+  const tendencia = porcentaje > promedio ? "En ascenso" : porcentaje < promedio ? "En descenso" : "Estable";
+
+  // Actualizar DOM
+  document.getElementById("ultima-lectura").textContent = `Última lectura: ${emoji} ${porcentaje}% – ${hora}`;
+  document.getElementById("promedio-emocional").textContent = `Promedio emocional: ${promedio}%`;
+  document.getElementById("tendencia-emocional").textContent = `Tendencia emocional: ${tendencia}`;
+  document.getElementById("nivel-emocional").textContent = `Nivel actual: ${capitalizar(nivel)}`;
+  document.getElementById("evaluacion-emocional").textContent = `Evaluación: ${evaluacionesEmocionales[nivel]}`;
+  document.getElementById("recomendacion-emocional").textContent = `Recomendación: ${recomendacionesEmocionales[nivel]}`;
+}
+function actualizarAlertas() {
+  const lista = document.getElementById("lista-alertas");
+  if (!lista) return;
+  lista.innerHTML = "";
+
+  for (const id in valoresCirculares) {
+    const valor = valoresCirculares[id];
+    const rango = rangosCirculares[id];
+    const porcentaje = Math.round(((valor - rango.min) / (rango.max - rango.min)) * 100);
+
+    let nivel = null;
+    let color = "";
+    let icono = "";
+
+    if (porcentaje < 5 || porcentaje > 95) {
+      nivel = "crítica";
+      color = "#ff1744"; // rojo intenso
+      icono = "🚨";
+    } else if (porcentaje < 20 || porcentaje > 80) {
+      nivel = "alta";
+      color = "#40f585ff"; // verde
+      icono = "❤️";
+    }
+
+    if (nivel) {
+      const item = document.createElement("li");
+      item.textContent = `${icono} ${formatearNombre(id)} ${nivel} (${porcentaje}%)`;
+      item.style.color = color;
+      item.style.fontWeight = "bold";
+      lista.appendChild(item);
     }
   }
 
-  const promedio = Math.round(valores.reduce((a, b) => a + b, 0) / valores.length);
-
-  const ultimaLecturaEl = document.getElementById("ultima-lectura");
-  const promedioEl = document.getElementById("promedio-emocional");
-
-  if (ultimaLecturaEl) {
-    ultimaLecturaEl.textContent = `Última lectura: ${ultimaLectura}`;
+  // Zona ambiental desfavorable
+  const zona = document.getElementById("resumen-zona")?.textContent?.toLowerCase();
+  if (zona && (zona.includes("ruidosa") || zona.includes("tráfico") || zona.includes("industrial"))) {
+    const item = document.createElement("li");
+    item.textContent = `📍 Zona ambiental desfavorable: ${capitalizar(zona)}`;
+    item.style.color = "#ff9100";
+    item.style.fontWeight = "bold";
+    lista.appendChild(item);
   }
-
-  if (promedioEl) {
-    promedioEl.textContent = `Promedio emocional: ${promedio}%`;
-  }
-  const tendenciaEl = document.getElementById("tendencia-emocional");
-if (tendenciaEl) {
-  tendenciaEl.textContent = `Tendencia emocional: ${calcularTendenciaEmocional()}`;
 }
+function toggleConfiguracion() {
+  const panel = document.getElementById("configuracion-contenido");
+  if (!panel) return;
+  panel.style.display = panel.style.display === "none" ? "block" : "none";
 }
-// ✅ Simulación automática con intervalo personalizado
-function iniciarSimulacionEmocional() {
-  if (intervaloSimulacion) clearInterval(intervaloSimulacion);
-
-  const cantidad = parseInt(document.getElementById("intervalo-personalizado").value);
-  const unidad = parseInt(document.getElementById("unidad-intervalo").value);
-  if (isNaN(cantidad) || isNaN(unidad)) return;
-
-  const intervaloMs = cantidad * unidad;
-
-  intervaloSimulacion = setInterval(() => {
-    const horaActual = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const valor = Math.floor(Math.random() * 41) + 60;
-    const emoji = valor > 80 ? "😄" : valor > 65 ? "🙂" : valor > 50 ? "😐" : "😟";
-    agregarLecturaEmocional(emoji, valor, horaActual);
-  }, intervaloMs);
+function toggleConfiguracionAvanzada() {
+  const panel = document.getElementById("configuracion-avanzada-contenido");
+  if (!panel) return;
+  panel.style.display = panel.style.display === "none" ? "block" : "none";
 }
 
-// 🧠 Diagnóstico emocional interpretado
-function diagnosticoEmocional(promedio) {
-  if (promedio > 80) return "Excelente estado emocional";
-  if (promedio > 65) return "Buen estado emocional";
-  if (promedio > 50) return "Estado emocional neutro";
-  return "Estado emocional bajo";
+function alternarRutinas() {
+  const bloque = document.getElementById("contenido-rutinas");
+  if (!bloque) return;
+  bloque.style.display = bloque.style.display === "none" ? "block" : "none";
 }
 
-// 🚀 Generar informe emocional
-document.getElementById("generar-informe").addEventListener("click", () => {
-  const items = [...document.querySelectorAll("#historial-emocional li")];
-  if (items.length === 0) return alert("No hay datos para generar informe.");
+function actualizarRutinas() {
+  const emocional = valoresCirculares?.emocional ?? 50;
+  const ambiental = valoresCirculares?.ambiental ?? 22;
 
-  let total = 0;
-  let max = -Infinity;
-  let min = Infinity;
+  const nivelEmocional = emocional < 33 ? "baja" : emocional > 66 ? "alta" : "moderada";
+  const nivelAmbiental = ambiental < 18 ? "frío" : ambiental > 28 ? "caluroso" : "templado";
 
-  items.forEach(item => {
-    const match = item.textContent.match(/(\d+)%/);
-    if (match) {
-      const valor = parseInt(match[1]);
-      total += valor;
-      if (valor > max) max = valor;
-      if (valor < min) min = valor;
+  // Recomendación contextual combinada
+  const recomendaciones = {
+    baja: {
+      frío: "Ambiente cálido y compañía tranquila. Evita actividades físicas.",
+      templado: "Rutinas suaves con apoyo emocional. Evita sobrecarga.",
+      caluroso: "Ambiente fresco y silencioso. Prioriza descanso y compañía."
+    },
+    moderada: {
+      frío: "Rutinas estables con pausas. Añade estimulación suave.",
+      templado: "Mantén ritmo equilibrado. Alterna actividad y descanso.",
+      caluroso: "Evita calor excesivo. Rutinas ligeras y monitoreo emocional."
+    },
+    alta: {
+      frío: "Aprovecha energía con juegos activos. Cuida temperatura.",
+      templado: "Rutinas dinámicas y estimulantes. Refuerza vínculos.",
+      caluroso: "Evita sobrecalentamiento. Estimulación cognitiva en interiores."
     }
+  };
+
+  const recomendacion = document.getElementById("recomendacion-rutina");
+  if (recomendacion) {
+    recomendacion.textContent = recomendaciones[nivelEmocional][nivelAmbiental];
+  }
+
+  // Rutinas por momento del día
+  const rutinas = {
+    mañana: [
+      nivelAmbiental === "caluroso" ? "Ambiente fresco y ventilado" : "Revisión de temperatura y humedad",
+      nivelEmocional === "baja" ? "Desayuno supervisado con compañía" : "Desayuno energético",
+      nivelEmocional === "alta" && nivelAmbiental !== "caluroso"
+        ? "Paseo activo al aire libre"
+        : "Actividad física suave en interiores"
+    ],
+    tarde: [
+      nivelEmocional === "baja" ? "Sesión de compañía tranquila" : "Juego interactivo o estimulación cognitiva",
+      nivelAmbiental === "caluroso" ? "Descanso en zona fresca" : "Pausa supervisada",
+      "Revisión de signos emocionales"
+    ],
+    noche: [
+      "Música relajante y luz tenue",
+      "Preparación para descanso",
+      "Evaluación emocional final"
+    ]
+  };
+
+  // Actualizar cada grupo visual
+  const grupos = document.querySelectorAll("#contenido-rutinas .grupo-rutina");
+  const momentos = ["mañana", "tarde", "noche"];
+
+  grupos.forEach((grupo, i) => {
+    const ul = grupo.querySelector("ul");
+    if (!ul) return;
+    ul.innerHTML = "";
+    rutinas[momentos[i]].forEach(tarea => {
+      const li = document.createElement("li");
+      li.innerHTML = `<input type="checkbox"> ${tarea}`;
+      ul.appendChild(li);
+    });
   });
+}
+// 🧠 Historial de notas
+const historialNotas = [];
 
-  const promedio = Math.round(total / items.length);
-  const diagnostico = diagnosticoEmocional(promedio);
+// 📝 Guardar nota
+function guardarNota() {
+  const textarea = document.getElementById("notas-cuidador");
+  const lista = document.getElementById("lista-notas");
+  const texto = textarea.value.trim();
 
-  document.getElementById("diagnostico-emocional").textContent = `🧠 Diagnóstico: ${diagnostico}`;
+  if (texto === "") return;
 
-  alert(`📊 Informe emocional:
-- Lecturas registradas: ${items.length}
-- Promedio emocional: ${promedio}%
-- Máximo: ${max}%
-- Mínimo: ${min}%
-- Diagnóstico: ${diagnostico}`);
-});
+  const nota = {
+    id: Date.now(),
+    texto,
+    fecha: new Date().toLocaleDateString(),
+    hora: new Date().toLocaleTimeString(),
+    etiquetas: detectarEtiquetas(texto),
+    prioridad: detectarPrioridad(texto),
+    vinculo: detectarVinculo(texto)
+  };
 
-// 📤 Exportar historial como JSON
-document.getElementById("exportar-historial").addEventListener("click", () => {
-  const items = [...document.querySelectorAll("#historial-emocional li")];
-  const datos = items.map(item => item.textContent);
-  const json = JSON.stringify(datos, null, 2);
-
-  console.log("📤 Historial exportado:\n", json);
-  alert("Historial exportado. Revisa la consola para ver el JSON.");
-});
-
-// 🧹 Resetear historial emocional
-document.getElementById("resetear-datos").addEventListener("click", () => {
-  if (!confirm("¿Seguro que quieres borrar todos los datos emocionales?")) return;
-
-  const historial = document.getElementById("historial-emocional");
-  historial.innerHTML = "";
-  document.getElementById("diagnostico-emocional").textContent = "";
-  actualizarResumenEmocional();
-});
-
-// 🐾 Perfil editable: cargar datos
-function cargarPerfilAnimal() {
-  document.getElementById("nombre-animal").value = localStorage.getItem("nombreAnimal") || "";
-  document.getElementById("raza-animal").value = localStorage.getItem("razaAnimal") || "";
-  document.getElementById("sexo-animal").value = localStorage.getItem("sexoAnimal") || "";
-  document.getElementById("color-animal").value = localStorage.getItem("colorAnimal") || "";
-  document.getElementById("peso-animal").value = localStorage.getItem("pesoAnimal") || "";
-  document.getElementById("nacimiento-animal").value = localStorage.getItem("nacimientoAnimal") || "";
-
-  calcularEdad();
+  historialNotas.unshift(nota);
+  mostrarNota(nota, lista);
+  textarea.value = "";
 }
 
-// 📅 Calcular edad desde fecha de nacimiento
-function calcularEdad() {
-  const fecha = document.getElementById("nacimiento-animal").value;
-  const salida = document.getElementById("edad-animal");
+// 🧠 Mostrar nota en la lista
+function mostrarNota(nota, lista) {
+  const li = document.createElement("li");
+  li.setAttribute("data-id", nota.id);
 
-  if (!fecha) {
-    salida.textContent = "—";
+  li.innerHTML = `
+    <strong>${nota.fecha} ${nota.hora}</strong><br>
+    ${nota.texto}
+    ${nota.etiquetas.length ? `<br><em>Etiquetas:</em> ${nota.etiquetas.join(", ")}` : ""}
+    ${nota.vinculo ? `<br><em>Relacionado con:</em> ${nota.vinculo}` : ""}
+    <br><button onclick="eliminarNota(${nota.id})" class="boton-eliminar-nota">🗑️ Eliminar</button>
+  `;
+
+  if (nota.prioridad === "alta") {
+    li.style.borderColor = "#ff6b6b";
+    li.style.backgroundColor = "#3c2f2f";
+  }
+
+  lista.prepend(li);
+}
+
+// 🗑️ Eliminar nota
+function eliminarNota(id) {
+  const index = historialNotas.findIndex(n => n.id === id);
+  if (index !== -1) historialNotas.splice(index, 1);
+
+  const li = document.querySelector(`#lista-notas li[data-id="${id}"]`);
+  if (li) li.remove();
+}
+
+// 🧠 Detectar etiquetas
+function detectarEtiquetas(texto) {
+  const etiquetas = [];
+  const lower = texto.toLowerCase();
+
+  if (lower.includes("rutina")) etiquetas.push("#rutina");
+  if (lower.includes("emocional")) etiquetas.push("#emocional");
+  if (lower.includes("ambiente") || lower.includes("temperatura")) etiquetas.push("#ambiente");
+  if (lower.includes("configuración")) etiquetas.push("#configuración");
+  if (lower.includes("pendiente") || lower.includes("urgente")) etiquetas.push("#urgente");
+
+  return etiquetas;
+}
+
+// 🧠 Detectar prioridad
+function detectarPrioridad(texto) {
+  const lower = texto.toLowerCase();
+  return lower.includes("urgente") || lower.includes("revisar") || lower.includes("pendiente")
+    ? "alta"
+    : "normal";
+}
+
+// 🧠 Detectar vínculo contextual
+function detectarVinculo(texto) {
+  const lower = texto.toLowerCase();
+  if (lower.includes("rutina")) return "Rutinas y tareas";
+  if (lower.includes("emocional")) return "Indicadores emocionales";
+  if (lower.includes("configuración")) return "Configuración";
+  if (lower.includes("ambiental") || lower.includes("temperatura")) return "Indicadores ambientales";
+  return null;
+}
+
+// 📄 Generar informe emocional
+document.getElementById("generar-informe").addEventListener("click", () => {
+  const emocional = valoresCirculares?.emocional ?? 50;
+  const ambiental = valoresCirculares?.ambiental ?? 22;
+
+  let diagnostico = "";
+
+  if (emocional < 33) {
+    diagnostico += "Estado emocional bajo. Se recomienda evitar sobreestimulación y reforzar compañía tranquila.";
+  } else if (emocional > 66) {
+    diagnostico += "Estado emocional alto. Se recomienda reforzar actividades positivas y monitoreo emocional.";
+  } else {
+    diagnostico += "Estado emocional moderado. Mantener rutinas estables y observar cambios sutiles.";
+  }
+
+  diagnostico += ` Temperatura ambiental: ${ambiental}°C.`;
+
+  document.getElementById("diagnostico-emocional").textContent = diagnostico;
+});
+
+// 📤 Exportar historial como archivo .txt
+document.getElementById("exportar-historial").addEventListener("click", () => {
+  if (!historialNotas.length) {
+    alert("No hay notas registradas.");
     return;
   }
 
-  const nacimiento = new Date(fecha);
-  const hoy = new Date();
+  const contenido = historialNotas.map(nota => {
+    const etiquetas = nota.etiquetas.length ? `Etiquetas: ${nota.etiquetas.join(", ")}` : "";
+    const vinculo = nota.vinculo ? `Relacionado con: ${nota.vinculo}` : "";
+    return `• ${nota.fecha} ${nota.hora}\n${nota.texto}\n${etiquetas}\n${vinculo}\n`;
+  }).join("\n");
+
+  const blob = new Blob([contenido], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
 
-  let años = hoy.getFullYear() - nacimiento.getFullYear();
-  let meses = hoy.getMonth() - nacimiento.getMonth();
-
-  if (meses < 0 || (meses === 0 && hoy.getDate() < nacimiento.getDate())) {
-    años--;
-    meses += 12;
-  }
-
-  if (años <= 0 && meses > 0) {
-    salida.textContent = `${meses} meses`;
-  } else if (años > 0 && meses > 0) {
-    salida.textContent = `${años} años y ${meses} meses`;
-  } else {
-    salida.textContent = `${años} años`;
-  }
-
-  // 💡 Actualizar sugerencias personalizadas
-  generarRecomendacionAnimal();
-}
-
-// 💾 Guardar perfil editable
-document.getElementById("guardar-perfil").addEventListener("click", () => {
-  localStorage.setItem("nombreAnimal", document.getElementById("nombre-animal").value);
-  localStorage.setItem("razaAnimal", document.getElementById("raza-animal").value);
-  localStorage.setItem("sexoAnimal", document.getElementById("sexo-animal").value);
-  localStorage.setItem("colorAnimal", document.getElementById("color-animal").value);
-  localStorage.setItem("pesoAnimal", document.getElementById("peso-animal").value);
-  localStorage.setItem("nacimientoAnimal", document.getElementById("nacimiento-animal").value);
-  localStorage.setItem("nacimientoAnimal", document.getElementById("nacimiento-animal").value);
-
-  calcularEdad();
-
-  const mensaje = document.getElementById("mensaje-perfil");
-  mensaje.style.display = "block";
-  setTimeout(() => mensaje.style.display = "none", 2000);
-});
-
-function mostrarAlerta(mensaje) {
-  const contenedor = document.getElementById("contenedor-alertas");
-  contenedor.textContent = mensaje;
-  contenedor.classList.remove("alerta-inactiva");
-  contenedor.classList.add("alerta-activa");
-}
-
-function verificarAlertas(valor, promedio) {
-  const UMBRAL_ALERTA = parseInt(localStorage.getItem("umbralEmocional") || "50");
-
-  const lista = document.getElementById("lista-alertas");
-  if (!lista) return;
-
-  const hora = new Date().toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
-  const mensaje = `⚠️ Estado emocional bajo (${valor}%) a las ${hora}`;
-
-  const yaExiste = [...lista.children].some(li => li.dataset.mensaje === mensaje);
-  if (!yaExiste && valor < UMBRAL_ALERTA) {
-    const alerta = document.createElement("li");
-    alerta.classList.add("alerta-activa");
-    alerta.dataset.mensaje = mensaje;
-    alerta.textContent = mensaje;
-    lista.insertBefore(alerta, lista.firstChild);
-
-    setTimeout(() => {
-      alerta.classList.add("alerta-oculta");
-      setTimeout(() => {
-        alerta.remove();
-      }, 1000);
-    }, 10000);
-
-    const historial = JSON.parse(localStorage.getItem("historialAlertas") || "[]");
-    historial.unshift(mensaje);
-    if (historial.length > 50) historial.pop();
-    localStorage.setItem("historialAlertas", JSON.stringify(historial));
-
-    actualizarHistorialAlertas();
-  }
-}
-function obtenerPromedioEmocional() {
-  const items = document.querySelectorAll("#historial-emocional li");
-  if (items.length === 0) return 0;
-
-  let total = 0;
-  items.forEach(item => {
-    const match = item.textContent.match(/(\d+)%/);
-    if (match) total += parseInt(match[1]);
-  });
-  return Math.round(total / items.length);
-}
-function generarRecomendacionAnimal() {
-  const raza = document.getElementById("raza-animal")?.value || "";
-  const edadTexto = document.getElementById("edad-animal")?.textContent || "";
-  const promedio = obtenerPromedioEmocional();
-
-  let edad = 0;
-  if (edadTexto.includes("años")) {
-    const match = edadTexto.match(/(\d+)/);
-    if (match) edad = parseInt(match[1]);
-  }
-
-  let mensaje = "😊 Mantén rutinas estables y refuerza momentos positivos.";
-
-  if (promedio < 50) {
-    mensaje = "⚠️ Revisa el entorno del animal. Podría necesitar descanso, compañía o atención médica.";
-  } else if (edad > 10) {
-    mensaje = "🧘 Recomendamos paseos cortos y descanso frecuente.";
-  } else if (raza === "Labrador" && promedio < 65) {
-    mensaje = "🎾 Juega con pelota o realiza actividades al aire libre para estimularlo.";
-  } else if (raza === "Chihuahua" && promedio > 70) {
-    mensaje = "🛋️ Ideal para sesiones tranquilas en casa con refuerzo positivo.";
-  }
-
-  const destino = document.getElementById("sugerencia-animal");
-  if (destino) destino.textContent = mensaje;
-}
-let graficaEmocionalDia = null;
-let intervaloLectura = null;
-
-// 📈 Inicializa la gráfica emocional en tiempo real
-function inicializarGraficaEmocionalTiempoReal() {
-  const ctx = document.getElementById("grafica-emocional-dia").getContext("2d");
-
-  graficaEmocionalDia = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: [],
-      datasets: [{
-        label: "Estado emocional (%)",
-        data: [],
-        borderColor: "#007acc",
-        backgroundColor: "rgba(0, 122, 204, 0.2)",
-        fill: true,
-        tension: 0.3,
-        pointRadius: 4,
-        pointBackgroundColor: "#007acc"
-      }]
-    },
-    options: {
-      responsive: true,
-      animation: false,
-      scales: {
-        y: {
-          beginAtZero: true,
-          max: 100
-        }
-      }
-    }
-  });
-}
-
-// 🧩 Agrega una lectura emocional simulada
-function agregarLecturaAutomatica() {
-  const valor = Math.floor(Math.random() * 61) + 40; // entre 40 y 100
-  const emoji = valor >= 75 ? "😊" : valor >= 55 ? "😐" : "😟";
-  const ahora = new Date();
-  const hora = ahora.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
-  const fechaTexto = ahora.toLocaleDateString("es-MX", {
-    weekday: "short",
-    year: "numeric",
-    month: "short",
-    day: "numeric"
-  });
-
-  const lectura = `${emoji} ${valor}% – ${hora} [${fechaTexto}]`;
-
-  // Agrega al historial visual
-  const li = document.createElement("li");
-  li.textContent = lectura;
-  document.getElementById("historial-emocional").appendChild(li);
-
-  // Guarda en localStorage
-  const historialGuardado = JSON.parse(localStorage.getItem("lecturasEmocionales") || "[]");
-  historialGuardado.push(lectura);
-  localStorage.setItem("lecturasEmocionales", JSON.stringify(historialGuardado));
-
-  // Actualiza gráfica
-  graficaEmocionalDia.data.labels.push(hora);
-  graficaEmocionalDia.data.datasets[0].data.push(valor);
-  graficaEmocionalDia.update();
-}
-
-// 🔁 Carga lecturas guardadas al iniciar
-function cargarLecturasGuardadas() {
-  const historial = JSON.parse(localStorage.getItem("lecturasEmocionales") || "[]");
-  const lista = document.getElementById("historial-emocional");
-
-  historial.forEach(texto => {
-    const li = document.createElement("li");
-    li.textContent = texto;
-    lista.appendChild(li);
-
-    const match = texto.match(/(\d+)%\s+–\s+(\d{2}:\d{2})/);
-    if (match) {
-      const valor = parseInt(match[1]);
-      const hora = match[2];
-      graficaEmocionalDia.data.labels.push(hora);
-      graficaEmocionalDia.data.datasets[0].data.push(valor);
-    }
-  });
-
-  graficaEmocionalDia.update();
-}
-
-// ⏱️ Inicia la lectura automática cada X segundos
-function iniciarComparativaTiempoReal(frecuenciaMs = 5000) {
-  if (intervaloLectura) clearInterval(intervaloLectura);
-  intervaloLectura = setInterval(() => {
-    agregarLecturaAutomatica();
-  }, frecuenciaMs);
-}
-
-// 🚀 Inicializa todo al cargar
-window.addEventListener("DOMContentLoaded", () => {
-  inicializarGraficaEmocionalTiempoReal();
-  cargarLecturasGuardadas();
-  iniciarComparativaTiempoReal(); // cada 10 segundos
-});
-
-const UMBRAL_ALERTA = 50; // puedes hacerlo dinámico más adelante
-function verificarAlertas(valor, promedio) {
-  const lista = document.getElementById("lista-alertas");
-  if (!lista) return;
-
-  const hora = new Date().toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
-  const mensaje = `⚠️ Estado emocional bajo (${valor}%) a las ${hora}`;
-
-  // Evita duplicados visuales
-  const yaExiste = [...lista.children].some(li => li.dataset.mensaje === mensaje);
-  if (!yaExiste) {
-    const alerta = document.createElement("li");
-    alerta.classList.add("alerta-activa");
-    alerta.dataset.mensaje = mensaje;
-    alerta.textContent = mensaje;
-    lista.insertBefore(alerta, lista.firstChild);
-
-    // Oculta automáticamente
-    setTimeout(() => {
-      alerta.classList.add("alerta-oculta");
-      setTimeout(() => {
-        alerta.remove();
-      }, 1000);
-    }, 10000);
-
-    // Guarda en historial persistente
-    const historial = JSON.parse(localStorage.getItem("historialAlertas") || "[]");
-    historial.unshift(mensaje);
-    if (historial.length > 50) historial.pop(); // límite de 50
-    localStorage.setItem("historialAlertas", JSON.stringify(historial));
-
-    // Actualiza visualmente el historial
-    actualizarHistorialAlertas();
-  }
-}
-
-function calcularTendenciaEmocional() {
-  const items = [...document.querySelectorAll("#historial-emocional li")];
-  if (items.length < 2) return "—";
-
-  const valores = items
-    .map(item => {
-      const match = item.textContent.match(/(\d+)%/);
-      return match ? parseInt(match[1]) : null;
-    })
-    .filter(v => v !== null);
-
-  const recientes = valores.slice(0, 3); // últimas 3 lecturas
-  const diferencia = recientes[0] - recientes[recientes.length - 1];
-
-  if (Math.abs(diferencia) < 3) return "Estable →";
-  if (diferencia > 0) return "Bajando ↓";
-  return "Subiendo ↑";
-}
-function generarDiagnosticoEmocional() {
-  const items = [...document.querySelectorAll("#historial-emocional li")];
-  if (items.length === 0) return;
-
-  const match = items[0].textContent.match(/(\d+)%/);
-  const valor = match ? parseInt(match[1]) : null;
-  const tendencia = calcularTendenciaEmocional();
-  const horaActual = new Date().getHours();
-
-  let momento;
-  if (horaActual < 12) momento = "mañana";
-  else if (horaActual < 18) momento = "tarde";
-  else momento = "noche";
-
-  // 🌐 Datos ambientales simulados
-  const clima = localStorage.getItem("climaActual") || "soleado";
-  const ubicacion = localStorage.getItem("ubicacionAnimal") || "interior";
-  const temperatura = parseFloat(localStorage.getItem("temperaturaCorporal") || "38.0");
-
-  let mensaje = "Estado emocional dentro de parámetros normales.";
-
-  if (valor !== null) {
-    if (valor < 40 && tendencia === "Bajando ↓") {
-      mensaje = `⚠️ El estado emocional está bajando en la ${momento}. Revisa si el animal necesita compañía o descanso.`;
-    } else if (valor > 80 && tendencia === "Subiendo ↑") {
-      mensaje = `😊 Estado emocional elevado en la ${momento}. Ideal para actividades estimulantes o entrenamiento.`;
-    } else if (valor < 50 && tendencia === "Estable →") {
-      mensaje = `😐 Estado emocional bajo pero estable en la ${momento}. Observa si hay factores externos que puedan influir.`;
-    }
-  }
-
-  // 🌐 Ajustes según entorno
-  if (valor !== null && valor < 60) {
-    if (clima === "caluroso" && temperatura >= 39) {
-      mensaje += " Posible estrés por calor. Revisa hidratación.";
-    } else if (clima === "lluvioso" && ubicacion === "exterior") {
-      mensaje += " Está en exterior bajo lluvia. Considera resguardo.";
-    } else if (temperatura < 36) {
-      mensaje += " Temperatura corporal baja. Revisa confort térmico.";
-    }
-  }
-
-  const diagnosticoEl = document.getElementById("mensaje-diagnostico");
-  if (diagnosticoEl) {
-    diagnosticoEl.textContent = mensaje;
-  }
-}
-function generarRecomendacionesEmocionales() {
-  const items = [...document.querySelectorAll("#historial-emocional li")];
-  if (items.length === 0) return;
-
-  const match = items[0].textContent.match(/(\d+)%/);
-  const valor = match ? parseInt(match[1]) : null;
-  const tendencia = calcularTendenciaEmocional();
-  const horaActual = new Date().getHours();
-
-  let momento;
-  if (horaActual < 12) momento = "mañana";
-  else if (horaActual < 18) momento = "tarde";
-  else momento = "noche";
-
-  // 🌐 Datos ambientales simulados
-  const clima = localStorage.getItem("climaActual") || "soleado";
-  const ubicacion = localStorage.getItem("ubicacionAnimal") || "interior";
-  const temperatura = parseFloat(localStorage.getItem("temperaturaCorporal") || "38.0");
-
-  const recomendaciones = [];
-
-  if (valor !== null) {
-    if (valor < 40 && tendencia === "Bajando ↓") {
-      recomendaciones.push("Ofrece compañía tranquila o contacto físico.");
-      recomendaciones.push("Evita estímulos intensos o cambios bruscos.");
-
-      if (temperatura < 36) {
-        recomendaciones.push("Proporciona abrigo y revisa confort térmico.");
-      }
-      if (clima === "lluvioso" && ubicacion === "exterior") {
-        recomendaciones.push("Resguarda al animal. Evita exposición prolongada a la lluvia.");
-      }
-    } else if (valor > 80 && tendencia === "Subiendo ↑") {
-      recomendaciones.push("Inicia una actividad estimulante o juego interactivo.");
-      recomendaciones.push("Aprovecha para reforzar rutinas positivas.");
-
-      if (clima === "caluroso" && temperatura >= 39) {
-        recomendaciones.push("Evita actividad física intensa. Revisa hidratación.");
-      }
-    } else if (valor < 50 && tendencia === "Estable →") {
-      recomendaciones.push("Observa el entorno por posibles factores de estrés.");
-      recomendaciones.push("Mantén una rutina estable y sin interrupciones.");
-
-      if (ubicacion === "zona de descanso") {
-        recomendaciones.push("Asegura que el espacio de descanso sea cómodo y silencioso.");
-      }
-    } else {
-      recomendaciones.push("Continúa monitoreando el estado emocional.");
-    }
-
-    // 🕒 Recomendación extra según hora
-    if (momento === "noche") {
-      recomendaciones.push("Prepara un ambiente relajado para el descanso.");
-    } else if (momento === "mañana") {
-      recomendaciones.push("Realiza una revisión rápida del entorno y rutina.");
-    }
-  }
-
-  const lista = document.getElementById("lista-recomendaciones");
-  if (lista) {
-    lista.innerHTML = "";
-    recomendaciones.forEach(rec => {
-      const li = document.createElement("li");
-      li.textContent = rec;
-      lista.appendChild(li);
-    });
-  }
-}
-function generarRutinasEmocionales() {
-  const items = [...document.querySelectorAll("#historial-emocional li")];
-  if (items.length === 0) return;
-
-  const match = items[0].textContent.match(/(\d+)%/);
-  const valor = match ? parseInt(match[1]) : null;
-  const tendencia = calcularTendenciaEmocional();
-  const horaActual = new Date().getHours();
-
-  let momento;
-  if (horaActual < 12) momento = "mañana";
-  else if (horaActual < 18) momento = "tarde";
-  else momento = "noche";
-
-  const rutinas = [];
-
-  if (valor !== null) {
-    if (valor < 40 && tendencia === "Bajando ↓") {
-      rutinas.push("📌 Supervisar comportamiento durante 15 minutos");
-      rutinas.push("📌 Registrar posibles factores de estrés");
-    } else if (valor > 80 && tendencia === "Subiendo ↑") {
-      rutinas.push("📌 Actividad física ligera (5–10 min)");
-      rutinas.push("📌 Reforzar rutina positiva con estímulo");
-    } else {
-      rutinas.push("📌 Mantener entorno estable y sin interrupciones");
-    }
-
-    if (momento === "noche") {
-      rutinas.push("📌 Preparar espacio de descanso");
-    } else if (momento === "mañana") {
-      rutinas.push("📌 Revisar alimentación y entorno");
-    }
-  }
-
-  const lista = document.getElementById("lista-rutinas");
-  if (lista) {
-    lista.innerHTML = "";
-    rutinas.forEach(rutina => {
-      const li = document.createElement("li");
-      li.innerHTML = `<label><input type="checkbox"> ${rutina}</label>`;
-      lista.appendChild(li);
-    });
-  }
-}
-function actualizarHistorialAlertas() {
-  const lista = document.getElementById("lista-historial-alertas");
-  if (!lista) return;
-
-  const historial = JSON.parse(localStorage.getItem("historialAlertas") || "[]");
-  lista.innerHTML = "";
-
-  historial.forEach(mensaje => {
-    const li = document.createElement("li");
-    li.textContent = mensaje;
-    lista.appendChild(li);
-  });
-}
-function exportarHistorialEmocional() {
-  const historial = JSON.parse(localStorage.getItem("lecturasEmocionales") || "[]");
-  const contenido = historial.join("\n");
-  descargarTexto("historial_emocional.txt", contenido);
-}
-
-function exportarHistorialAlertas() {
-  const alertas = JSON.parse(localStorage.getItem("historialAlertas") || "[]");
-  const contenido = alertas.join("\n");
-  descargarTexto("historial_alertas.txt", contenido);
-}
-
-function descargarTexto(nombreArchivo, contenido) {
-  const blob = new Blob([contenido], { type: "text/plain" });
   const enlace = document.createElement("a");
-  enlace.href = URL.createObjectURL(blob);
-  enlace.download = nombreArchivo;
+  enlace.href = url;
+  enlace.download = "historial_notas.txt";
   document.body.appendChild(enlace);
   enlace.click();
   document.body.removeChild(enlace);
-}
-function actualizarResumenAmbiental() {
-  const clima = localStorage.getItem("climaActual") || "—";
-  const ubicacion = localStorage.getItem("ubicacionAnimal") || "—";
-  const temperatura = localStorage.getItem("temperaturaCorporal") || "—";
-
-  const lista = document.getElementById("lista-resumen-ambiental");
-  if (!lista) return;
-
-  lista.innerHTML = `
-    <li>🌤 Clima actual: <strong>${clima}</strong></li>
-    <li>📍 Ubicación: <strong>${ubicacion}</strong></li>
-    <li>🌡 Temperatura corporal: <strong>${temperatura} °C</strong></li>
-  `;
-}
-
-window.addEventListener("DOMContentLoaded", () => {
-  const climaSelect = document.getElementById("clima-actual");
-  const ubicacionSelect = document.getElementById("ubicacion-animal");
-  const temperaturaInput = document.getElementById("temperatura-corporal");
-
-  // Cargar valores guardados
-  if (climaSelect) {
-    climaSelect.value = localStorage.getItem("climaActual") || "Soleado";
-    climaSelect.addEventListener("change", () => {
-      localStorage.setItem("climaActual", climaSelect.value);
-      actualizarResumenAmbiental();
-    });
-  }
-
-  if (ubicacionSelect) {
-    ubicacionSelect.value = localStorage.getItem("ubicacionAnimal") || "Interior";
-    ubicacionSelect.addEventListener("change", () => {
-      localStorage.setItem("ubicacionAnimal", ubicacionSelect.value);
-      actualizarResumenAmbiental();
-    });
-  }
-
-  if (temperaturaInput) {
-    temperaturaInput.value = localStorage.getItem("temperaturaCorporal") || "38.5";
-    temperaturaInput.addEventListener("input", () => {
-      localStorage.setItem("temperaturaCorporal", temperaturaInput.value);
-      actualizarResumenAmbiental();
-    });
-  }
-
-  // Mostrar resumen al iniciar
-  actualizarResumenAmbiental();
+  URL.revokeObjectURL(url);
 });
+
+// 🔄 Resetear datos del sistema
+document.getElementById("resetear-datos").addEventListener("click", () => {
+  if (!confirm("¿Seguro que quieres resetear todos los datos? Esta acción no se puede deshacer.")) return;
+
+  // Resetear notas
+  historialNotas.length = 0;
+  document.getElementById("lista-notas").innerHTML = "";
+
+  // Resetear diagnóstico
+  document.getElementById("diagnostico-emocional").textContent = "";
+
+  // Resetear rutinas
+  const grupos = document.querySelectorAll("#contenido-rutinas .lista-rutinas");
+  grupos.forEach(ul => ul.innerHTML = "");
+
+  alert("Todos los datos han sido reseteados.");
+});
+let mapa;
+let marcador;
+let historialUbicaciones = [];
+let modoPerdido = false;
+let modoEdicion = false;
+let puntosZona = [];
+let polilineaTemporal = null;
+let zonas = {};
+
+function inicializarMapa() {
+  const posicionInicial = { lat: 21.9876, lng: -99.0123 };
+
+  mapa = new google.maps.Map(document.getElementById("mapa-real"), {
+    center: posicionInicial,
+    zoom: 16,
+    mapId: "MAPA_PERSONALIZADO"
+  });
+
+  marcador = new google.maps.Marker({
+    position: posicionInicial,
+    map: mapa,
+    title: "Ubicación actual",
+    icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+  });
+
+  habilitarClickEnMapa();
+  registrarUbicacion(posicionInicial);
+  actualizarListaZonas();
+}
+
+// 🖱️ Trazado libre
+function habilitarClickEnMapa() {
+  mapa.addListener("click", (e) => {
+    if (!modoEdicion) return;
+
+    puntosZona.push(e.latLng);
+
+    if (polilineaTemporal) polilineaTemporal.setMap(null);
+
+    polilineaTemporal = new google.maps.Polyline({
+      path: puntosZona,
+      map: mapa,
+      strokeColor: "#FF9800",
+      strokeOpacity: 0.8,
+      strokeWeight: 2
+    });
+  });
+}
+
+function activarModoEdicion() {
+  modoEdicion = true;
+  puntosZona = [];
+
+  if (polilineaTemporal) {
+    polilineaTemporal.setMap(null);
+    polilineaTemporal = null;
+  }
+
+  mostrarMensajeEstado("Haz clic en el mapa para trazar los puntos de la zona. Luego presiona 'Finalizar zona'.");
+  actualizarListaZonas();
+}
+function finalizarZona() {
+  if (puntosZona.length < 3) {
+    mostrarMensajeEstado("Debes trazar al menos 3 puntos para formar una zona cerrada.");
+    return;
+  }
+
+  const tipo = document.getElementById("tipo-zona").value;
+  const color = obtenerColorZona(tipo);
+
+  if (zonas[tipo]) zonas[tipo].setMap(null);
+
+  const poligono = new google.maps.Polygon({
+    paths: puntosZona,
+    strokeColor: color,
+    strokeOpacity: 0.8,
+    strokeWeight: 2,
+    fillColor: color,
+    fillOpacity: 0.2,
+    map: mapa
+  });
+
+  zonas[tipo] = poligono;
+  puntosZona = [];
+  modoEdicion = false;
+
+  if (polilineaTemporal) {
+    polilineaTemporal.setMap(null);
+    polilineaTemporal = null;
+  }
+
+  mostrarMensajeEstado(`Zona "${formatearNombreZona(tipo)}" creada correctamente.`);
+  actualizarListaZonas();
+}
+
+function eliminarZona(nombre) {
+  if (zonas[nombre]) {
+    zonas[nombre].setMap(null);
+    delete zonas[nombre];
+    actualizarListaZonas();
+  }
+}
+
+function actualizarListaZonas() {
+  const contenedor = document.getElementById("lista-zonas");
+  if (!contenedor) return;
+
+  contenedor.innerHTML = "";
+
+  Object.keys(zonas).forEach(nombre => {
+    const div = document.createElement("div");
+    div.className = "zona-item";
+    div.innerHTML = `
+      <span>${formatearNombreZona(nombre)}</span>
+      <button onclick="eliminarZona('${nombre}')">🗑️</button>
+    `;
+    contenedor.appendChild(div);
+  });
+}
+
+function obtenerColorZona(tipo) {
+  switch (tipo) {
+    case "casa": return "#2196F3";
+    case "parque": return "#4CAF50";
+    case "descanso": return "#9C27B0";
+    case "higiene": return "#03A9F4";
+    case "comedor": return "#FF9800";
+    default: return "#999999";
+  }
+}
+
+function formatearNombreZona(nombre) {
+  switch (nombre) {
+    case "casa": return "Casa 🏡";
+    case "parque": return "Parque 🌳";
+    case "descanso": return "Zona de descanso 💤";
+    case "higiene": return "Área de higiene 🧼";
+    case "comedor": return "Comedor 🍽️";
+    default: return nombre;
+  }
+}
+
+function clasificarZonaGeografica(pos) {
+  const punto = new google.maps.LatLng(pos.lat, pos.lng);
+
+  for (const [nombre, zona] of Object.entries(zonas)) {
+    if (zona instanceof google.maps.Polygon) {
+      if (google.maps.geometry.poly.containsLocation(punto, zona)) {
+        return formatearNombreZona(nombre);
+      }
+    }
+  }
+
+  return null;
+}
+
+setInterval(() => {
+  if (modoPerdido || !marcador) return;
+
+  const actual = marcador.getPosition();
+  const nuevaLat = actual.lat() + (Math.random() - 0.5) * 0.0002;
+  const nuevaLng = actual.lng() + (Math.random() - 0.5) * 0.0002;
+  const nuevaPosicion = { lat: nuevaLat, lng: nuevaLng };
+
+  marcador.setPosition(nuevaPosicion);
+  mapa.panTo(nuevaPosicion);
+  registrarUbicacion(nuevaPosicion);
+}, 3000);
+
+function registrarUbicacion(pos) {
+  const timestamp = new Date().toLocaleTimeString();
+  const zona = clasificarZonaGeografica(pos);
+  const entrada = {
+    lat: pos.lat.toFixed(5),
+    lng: pos.lng.toFixed(5),
+    hora: timestamp,
+    zona: zona || "Zona general"
+  };
+
+  historialUbicaciones.unshift(entrada);
+  actualizarHistorialVisual();
+  actualizarDireccion(pos);
+}
+
+function actualizarDireccion(pos) {
+  const geocoder = new google.maps.Geocoder();
+
+  geocoder.geocode({ location: pos }, (results, status) => {
+    if (status === "OK" && results[0]) {
+      const direccion = results[0].formatted_address;
+      const zona = clasificarZonaGeografica(pos) || "Zona general";
+
+      document.getElementById("direccion-actual").textContent = direccion;
+      document.getElementById("estado-zona").textContent = `${zona} ✅`;
+    }
+  });
+}
+
+function actualizarHistorialVisual() {
+  const lista = document.querySelector(".historial-ubicacion");
+  lista.innerHTML = "";
+
+  historialUbicaciones.slice(0, 5).forEach(entrada => {
+    const li = document.createElement("li");
+    li.textContent = `🕒 ${entrada.hora} → (${entrada.lat}, ${entrada.lng} - ${entrada.zona})`;
+    lista.appendChild(li);
+  });
+}
+function mostrarMensajeEstado(texto, duracion = 4000) {
+  const contenedor = document.getElementById("mensaje-estado");
+  if (!contenedor) return;
+
+  contenedor.textContent = texto;
+  contenedor.classList.add("visible");
+
+  setTimeout(() => {
+    contenedor.classList.remove("visible");
+    contenedor.textContent = "";
+  }, duracion);
+}
+function activarModoPerdido() {
+  modoPerdido = true;
+
+  const mapa = document.getElementById("mapa-real");
+  const mensaje = document.getElementById("mensaje-perdido");
+
+  if (mapa) mapa.classList.add("mapa-perdido");
+  if (mensaje) {
+    mensaje.textContent = "🔍 Detectando a tu mascota...";
+    mensaje.classList.add("visible");
+  }
+}
+function desactivarModoPerdido() {
+  modoPerdido = false;
+
+  const mapa = document.getElementById("mapa-real");
+  const mensaje = document.getElementById("mensaje-perdido");
+
+  if (mapa) mapa.classList.remove("mapa-perdido");
+  if (mensaje) {
+    mensaje.textContent = "";
+    mensaje.classList.remove("visible");
+  }
+}
+// 👉 Alternar modo perdido
+function alternarModoPerdido(boton) {
+  const estado = boton.textContent.includes("Activar");
+
+  boton.textContent = estado
+    ? "Desactivar modo perdido ❌"
+    : "Activar modo perdido 🆘";
+  boton.style.backgroundColor = estado ? "#9c27b0" : "#f44336";
+
+  const mapa = document.getElementById("mapa-real");
+  if (mapa) mapa.classList.toggle("mapa-perdido", estado);
+
+  const mensaje = document.getElementById("mensaje-perdido");
+  if (mensaje) {
+    if (estado) {
+      mensaje.textContent = "🔍 Detectando a tu mascota...";
+      mensaje.classList.add("visible");
+    } else {
+      mensaje.textContent = "";
+      mensaje.classList.remove("visible");
+    }
+  }
+
+  modoPerdido = estado;
+}
+
+
+let watchId = null;
+let marcadorActual = null;
+
+// Inicia el seguimiento de ubicación
+function iniciarSeguimientoUbicacion() {
+  if (!navigator.geolocation) {
+    mostrarMensajeEstado("La geolocalización no está disponible en este navegador.");
+    return;
+  }
+
+  watchId = navigator.geolocation.watchPosition(
+    async (pos) => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const posicion = { lat, lng };
+
+      // Actualiza dirección
+      const direccion = await obtenerDireccionDesdeCoords(lat, lng);
+      document.getElementById("direccion-actual").textContent = direccion;
+
+      // Verifica zona
+      const estado = verificarZonaActual(posicion);
+      document.getElementById("estado-zona").textContent = estado;
+
+      // (Opcional) actualiza marcador en el mapa
+      actualizarMarcador(posicion);
+    },
+    (err) => {
+      mostrarMensajeEstado("Error al obtener ubicación: " + err.message);
+    },
+    {
+      enableHighAccuracy: true,
+      maximumAge: 5000,
+      timeout: 10000
+    }
+  );
+}
+
+// Geocodificación inversa con Google Maps
+async function obtenerDireccionDesdeCoords(lat, lng) {
+  return new Promise((resolve) => {
+    const geocoder = new google.maps.Geocoder();
+    const latlng = { lat, lng };
+
+    geocoder.geocode({ location: latlng }, (results, status) => {
+      if (status === "OK" && results[0]) {
+        resolve(results[0].formatted_address);
+      } else {
+        resolve("Dirección no disponible");
+      }
+    });
+  });
+}
+
+// Verifica si la posición está dentro de alguna zona
+function verificarZonaActual(posicion) {
+  for (const tipo in zonas) {
+    const poligono = zonas[tipo];
+    if (
+      google.maps.geometry.poly.containsLocation(
+        new google.maps.LatLng(posicion),
+        poligono
+      )
+    ) {
+      return formatearNombreZona(tipo); // Ej: "Zona de descanso"
+    }
+  }
+  return "Fuera de zona";
+}
+
+// Actualiza marcador en el mapa
+function actualizarMarcador(posicion) {
+  if (!mapa) return;
+
+  if (!marcadorActual) {
+    marcadorActual = new google.maps.Marker({
+      position: posicion,
+      map: mapa,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 6,
+        fillColor: "#03A9F4",
+        fillOpacity: 1,
+        strokeWeight: 1,
+        strokeColor: "#fff"
+      }
+    });
+  } else {
+    marcadorActual.setPosition(posicion);
+  }
+}
+
+// Mensaje visual en la interfaz (no alert)
+function mostrarMensajeEstado(texto, duracion = 4000) {
+  const contenedor = document.getElementById("mensaje-estado");
+  if (!contenedor) return;
+
+  contenedor.textContent = texto;
+  contenedor.classList.add("visible");
+
+  setTimeout(() => {
+    contenedor.classList.remove("visible");
+    contenedor.textContent = "";
+  }, duracion);
+}
+
+// Inicia seguimiento al cargar
+window.addEventListener("load", () => {
+  iniciarSeguimientoUbicacion();
+});
+
+
+let resumenVisible = false;
+let comparacionVisible = false;
+
+document.getElementById("btn-resumen-diario").addEventListener("click", () => {
+  resumenVisible = !resumenVisible;
+  const resumen = document.getElementById("resultado-resumen");
+  resumen.style.display = resumenVisible ? "block" : "none";
+  if (resumenVisible) mostrarResumenDiario();
+});
+
+document.getElementById("btn-comparar-dias").addEventListener("click", () => {
+  comparacionVisible = !comparacionVisible;
+  const comparacion = document.getElementById("resultado-comparacion");
+  comparacion.style.display = comparacionVisible ? "block" : "none";
+  if (comparacionVisible) mostrarComparacionDias();
+});
+
+document.getElementById("btn-exportar-json").addEventListener("click", () => {
+  const resumen = document.getElementById("resultado-resumen").textContent;
+  const blob = new Blob([JSON.stringify({ resumen })], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "resumen.json";
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById("btn-exportar-pdf").addEventListener("click", () => {
+  alert("📄 Simulación: El resumen se exportaría como PDF aquí.");
+});
+
+function mostrarResumenDiario() {
+  const resumen = document.getElementById("resultado-resumen");
+  resumen.innerHTML = "";
+  resumen.style.display = "block";
+
+  const indicadores = [
+    { id: "grafica-temperatura", nombre: "Temperatura corporal", unidad: "°C" },
+    { id: "grafica-ritmo", nombre: "Ritmo cardíaco", unidad: "bpm" },
+    { id: "grafica-energia", nombre: "Energía", unidad: "%" },
+    { id: "grafica-estres", nombre: "Estrés", unidad: "%" },
+    { id: "grafica-sueño", nombre: "Sueño", unidad: "h" },
+    { id: "grafica-bienestar", nombre: "Bienestar emocional", unidad: "%" },
+    { id: "grafica-emocional-tiempo", nombre: "Estado emocional", unidad: "%" }
+  ];
+
+  const contenedor = document.createElement("div");
+  contenedor.className = "contenedor-resumenes";
+
+  indicadores.forEach(({ id, nombre, unidad }) => {
+    const chart = Chart.getChart(id);
+    if (!chart) return;
+
+    const datos = chart.data.datasets[0].data;
+    const promedio = datos.length
+      ? (datos.reduce((a, b) => a + b, 0) / datos.length).toFixed(1)
+      : "—";
+
+    const tarjeta = document.createElement("div");
+    tarjeta.className = "resumen-columna";
+    tarjeta.innerHTML = `
+      <h3>${nombre}</h3>
+      <p><strong>Promedio:</strong> ${promedio} ${unidad}</p>
+    `;
+    contenedor.appendChild(tarjeta);
+  });
+
+  // 🔔 Simulación de alertas del día
+  const alertasSimuladas = [
+    { fecha: "2025-10-30", mensaje: "⚠️ Estrés elevado" },
+    { fecha: "2025-10-31", mensaje: "🚨 Ritmo cardíaco alto" }
+  ];
+
+  const hoy = new Date().toISOString().split("T")[0];
+  const alertasHoy = alertasSimuladas.filter(a => a.fecha === hoy);
+
+  if (alertasHoy.length) {
+    const alertaBox = document.createElement("div");
+    alertaBox.className = "resumen-columna";
+    alertaBox.innerHTML = `<h3>🔔 Alertas del día</h3><ul>${alertasHoy.map(a => `<li>${a.mensaje}</li>`).join("")}</ul>`;
+    contenedor.appendChild(alertaBox);
+  }
+
+  resumen.appendChild(contenedor);
+}
+
+function mostrarComparacionDias() {
+  const comparacion = document.getElementById("resultado-comparacion");
+  comparacion.innerHTML = "";
+  comparacion.style.display = "block";
+
+  const fecha1 = document.getElementById("fecha-comparacion-1").value;
+  const fecha2 = document.getElementById("fecha-comparacion-2").value;
+
+  const chart = Chart.getChart("grafica-energia");
+  if (!chart || chart.data.datasets[0].data.length < 2) {
+    comparacion.textContent = "No hay suficientes datos para comparar.";
+    return;
+  }
+
+  const hoy = chart.data.datasets[0].data.at(-1);
+  const ayer = chart.data.datasets[0].data.at(-2);
+  const diferencia = (hoy - ayer).toFixed(1);
+
+  const tarjeta = document.createElement("div");
+  tarjeta.className = "resumen-columna";
+  tarjeta.innerHTML = `
+    <h3>Comparación de energía</h3>
+    <p><strong>Día 1:</strong> ${fecha1 || "ayer"} — ${ayer} %</p>
+    <p><strong>Día 2:</strong> ${fecha2 || "hoy"} — ${hoy} %</p>
+    <p><strong>Diferencia:</strong> ${diferencia > 0 ? "+" : ""}${diferencia} %</p>
+  `;
+
+  comparacion.appendChild(tarjeta);
+}
+setInterval(() => {
+    actualizarGraficasCirculares();
+    actualizarRecomendaciones();
+    actualizarResumenAmbiental();
+    actualizarResumenEmocional();
+    actualizarEstadoEmocionalGeneral();
+    actualizarAlertas();
+
+  }, 3000);
